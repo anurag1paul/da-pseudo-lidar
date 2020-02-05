@@ -4,7 +4,7 @@ import os
 import numpy as np
 import scipy.misc as ssc
 
-import kitti_util
+from . import kitti_util
 
 
 def project_disp_to_points(calib, disp, max_high):

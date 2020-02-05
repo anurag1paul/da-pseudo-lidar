@@ -1,7 +1,7 @@
 import re
+
 import numpy as np
-import sys
- 
+
 
 def readPFM(file):
     file = open(file, 'rb')

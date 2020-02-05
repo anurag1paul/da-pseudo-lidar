@@ -1,23 +1,21 @@
 from __future__ import print_function
+
 import argparse
 import os
-import random
-import torch
-import torch.nn as nn
-import torch.nn.parallel
-import torch.backends.cudnn as cudnn
-import torch.optim as optim
-import torch.utils.data
-from torch.autograd import Variable
-import torch.nn.functional as F
+import time
+
+import numpy as np
 import skimage
 import skimage.io
 import skimage.transform
-import numpy as np
-import time
-import math
-from utils import preprocess 
-from models import *
+import torch
+import torch.nn as nn
+import torch.nn.parallel
+import torch.utils.data
+from torch.autograd import Variable
+
+from psmnet.models import *
+from psmnet.utils import preprocess
 
 # 2012 data /media/jiaren/ImageNet/data_scene_flow_2012/testing/
 

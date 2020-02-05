@@ -4,7 +4,7 @@ import os
 import numpy as np
 from sklearn.linear_model import RANSACRegressor
 
-import kitti_util as utils
+from . import kitti_util as utils
 
 
 def extract_ransac(calib_dir, lidar_dir, planes_dir):

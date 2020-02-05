@@ -1,10 +1,11 @@
 import random
 
 import numpy as np
-import preprocess
 import torch
 import torch.utils.data as data
 from PIL import Image
+
+from psmnet.dataloader import preprocess
 
 IMG_EXTENSIONS = [
     '.jpg', '.JPG', '.jpeg', '.JPEG',

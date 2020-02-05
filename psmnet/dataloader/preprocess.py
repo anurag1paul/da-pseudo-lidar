@@ -9,8 +9,8 @@ __imagenet_stats = {'mean': [0.485, 0.456, 0.406],
 #                   'std': [0.5, 0.5, 0.5]}
 
 __imagenet_pca = {
-    'eigval': torch.Tensor([0.2175, 0.0188, 0.0045]),
-    'eigvec': torch.Tensor([
+    'eigval': torch.tensor([0.2175, 0.0188, 0.0045]),
+    'eigvec': torch.tensor([
         [-0.5675,  0.7192,  0.4009],
         [-0.5808, -0.0045, -0.8140],
         [-0.5836, -0.6948,  0.4203],
@@ -58,6 +58,8 @@ def inception_preproccess(input_size, normalize=__imagenet_stats):
         transforms.ToTensor(),
         transforms.Normalize(**normalize)
     ])
+
+
 def inception_color_preproccess(input_size, normalize=__imagenet_stats):
     return transforms.Compose([
         #transforms.RandomSizedCrop(input_size),
@@ -82,8 +84,6 @@ def get_transform(name='imagenet', input_size=None,
     else:
             return scale_crop(input_size=input_size,
                               scale_size=scale_size, normalize=normalize)
-
-
 
 
 class Lighting(object):

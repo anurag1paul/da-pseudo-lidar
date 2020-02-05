@@ -13,10 +13,10 @@ import torch.optim as optim
 import torch.utils.data
 from torch.autograd import Variable
 
-import logger
-from dataloader import KITTILoader3D as ls
-from dataloader import KITTILoader_dataset3d as DA
-from models import *
+from psmnet import logger
+from psmnet.dataloader import KITTILoader3D as ls
+from psmnet.dataloader import KITTILoader_dataset3d as DA
+from psmnet.models import *
 
 parser = argparse.ArgumentParser(description='PSMNet')
 parser.add_argument('--maxdisp', type=int, default=192,

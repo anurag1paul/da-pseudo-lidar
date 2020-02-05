@@ -1,12 +1,7 @@
-from __future__ import print_function
-
-from submodule import *
-import torch
-import torch.nn as nn
 import torch.utils.data
-from torch.autograd import Variable
-import torch.nn.functional as F
 import math
+
+from psmnet.models.submodule import *
 
 
 class hourglass(nn.Module):
@@ -112,9 +107,9 @@ class PSMNet(nn.Module):
         targetimg_fea = self.feature_extraction(right)
 
         # matching
-        cost = Variable(
-            torch.FloatTensor(refimg_fea.size()[0], refimg_fea.size()[1] * 2, self.maxdisp / 4, refimg_fea.size()[2],
-                              refimg_fea.size()[3]).zero_()).cuda()
+        cost = torch.zeros(refimg_fea.size()[0], refimg_fea.size()[1] * 2,
+                           self.maxdisp / 4, refimg_fea.size()[2],
+                              refimg_fea.size()[3]).cuda()
 
         for i in range(self.maxdisp / 4):
             if i > 0:
