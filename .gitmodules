@@ -5,3 +5,6 @@
 [submodule "frustum-pointnets"]
 	path = frustum-pointnets
 	url = git@github.com:charlesq34/frustum-pointnets.git
+[submodule "vnl_depth"]
+	path = vnl_depth
+	url = git@github.com:anurag1paul/VNL_Monocular_Depth_Prediction.git
