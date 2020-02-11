@@ -5,11 +5,12 @@ import random
 import numpy as np
 import torch
 import torch.utils.data as data
+import pandas as pd
 from PIL import Image
 
 from psmnet.dataloader import preprocess
 
-
+MAX_DISP = 65516
 IMG_EXTENSIONS = [
     '.jpg', '.JPG', '.jpeg', '.JPEG',
     '.png', '.PNG', '.ppm', '.PPM', '.bmp', '.BMP',
@@ -20,31 +21,18 @@ def is_image_file(filename):
     return any(filename.endswith(extension) for extension in IMG_EXTENSIONS)
 
 
-def dataloader(file_paths):
+def dataloader(root_dir, split_file):
     """
     Function to load data for Apollo
-    :param file_paths: list of training folders
+    :param root_dir: dataset directory
+    :param split_file: file names
     :return: left, right and disparity file lists
     """
-    left = 'camera_5/'
-    right = 'camera_6/'
-    disp = 'disparity/'
+    files = pd.read_csv(split_file, header=0)
 
-    left_train = []
-    right_train = []
-    disp_train = []
-
-    for filepath in file_paths:
-        left_folder = os.path.join(filepath, left)
-        right_folder = os.path.join(filepath, right)
-        disp_folder = os.path.join(filepath, disp)
-
-        left_files = next(os.walk(left_folder))[2]
-
-        for left_img in left_files:
-            left_train.append(os.path.join(left_folder, left_img))
-            right_train.append(os.path.join(right_folder, left_img.replace("Camera_5", "Camera_6")))
-            disp_train.append(os.path.join(disp_folder, left_img.replace("jpg", "png")))
+    left_train = list(files["left"].apply(lambda x: os.path.join(root_dir, x)))
+    right_train = list(files["right"].apply(lambda x: os.path.join(root_dir, x)))
+    disp_train = list(files["disparity"].apply(lambda x: os.path.join(root_dir, x)))
 
     return left_train, right_train, disp_train
 
@@ -55,7 +43,8 @@ def default_loader(path):
 
 def disparity_loader(path):
     disp_img = Image.open(path)
-    return np.array(disp_img).astype(np.float32)
+    disp = np.array(disp_img).astype(np.float32) / MAX_DISP
+    return disp
 
 
 class ImageLoader(data.Dataset):
@@ -97,9 +86,9 @@ class ImageLoader(data.Dataset):
         else:
             w, h = left_img.size
 
-            left_img = left_img.crop((w - 1200, h - 352, w, h))
-            right_img = right_img.crop((w - 1200, h - 352, w, h))
-            dataL = dataL[h - 352:h, w - 1200:w]
+            # left_img = left_img.crop((w - 1200, h - 352, w, h))
+            # right_img = right_img.crop((w - 1200, h - 352, w, h))
+            # dataL = dataL[h - 352:h, w - 1200:w]
 
             processed = preprocess.get_transform(augment=False)
             left_img = processed(left_img)
