@@ -65,7 +65,7 @@ TrainImgLoader = torch.utils.data.DataLoader(
 
 ValImgLoader = torch.utils.data.DataLoader(
     apollo.ImageLoader(val_left_img, val_right_img, val_left_disp, False),
-    batch_size=args.btrain, shuffle=False, num_workers=14, drop_last=False)
+    batch_size=1, shuffle=False, num_workers=14, drop_last=False)
 
 if args.model == 'stackhourglass':
     model = stackhourglass(args.maxdisp)
@@ -173,9 +173,11 @@ def main():
             start_time = time.time()
 
             loss = train(imgL_crop, imgR_crop, disp_crop_L)
-            print('Iter %d training loss = %.3f , time = %.2f' % (
-            batch_idx, loss, time.time() - start_time))
+            if batch_idx % 5 == 0:
+                print('Iter %d training loss = %.3f , time = %.2f' % (
+                    batch_idx, loss, time.time() - start_time))
             total_train_loss += loss
+        
         print('epoch %d total training loss = %.3f' % (
         epoch, total_train_loss / len(TrainImgLoader)))
 
@@ -184,8 +186,6 @@ def main():
         for batch_idx, (imgL, imgR, disp_L) in enumerate(ValImgLoader):
             val_start_time = time.time()
             loss = test(imgL, imgR, disp_L)
-            print('Iter %d validation loss = %.3f , time = %.2f' % (
-            batch_idx, loss, time.time() - val_start_time))
             total_val_loss += loss
         print('epoch %d total validation loss = %.3f' % (
         epoch, total_val_loss / len(ValImgLoader)))

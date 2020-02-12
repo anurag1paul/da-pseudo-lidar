@@ -86,10 +86,14 @@ class ImageLoader(data.Dataset):
 
         else:
             w, h = left_img.size
+            th, tw = 512, 1024
+            x1 = random.randint(0, w - tw)
+            y1 = random.randint(0, h - th)
 
-            # left_img = left_img.crop((w - 1200, h - 352, w, h))
-            # right_img = right_img.crop((w - 1200, h - 352, w, h))
-            # dataL = dataL[h - 352:h, w - 1200:w]
+            left_img = left_img.crop((x1, y1, x1 + tw, y1 + th))
+            right_img = right_img.crop((x1, y1, x1 + tw, y1 + th))
+
+            dataL = dataL[y1:y1 + th, x1:x1 + tw]
 
             processed = preprocess.get_transform(augment=False)
             left_img = processed(left_img)
