@@ -107,9 +107,9 @@ class PSMNet(nn.Module):
         targetimg_fea = self.feature_extraction(right)
 
         # matching
-        cost = torch.zeros(refimg_fea.size()[0], refimg_fea.size()[1] * 2,
+        cost = torch.zeros((refimg_fea.size()[0], refimg_fea.size()[1] * 2,
                            self.maxdisp / 4, refimg_fea.size()[2],
-                              refimg_fea.size()[3]).cuda()
+                              refimg_fea.size()[3])).cuda()
 
         for i in range(self.maxdisp / 4):
             if i > 0:

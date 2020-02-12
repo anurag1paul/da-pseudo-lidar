@@ -17,8 +17,8 @@ from psmnet.dataloader import ApolloLoader as apollo
 from psmnet.models import *
 
 parser = argparse.ArgumentParser(description='PSMNet')
-parser.add_argument('--maxdisp', type=int, default=65516,
-                    help='maximum disparity')
+parser.add_argument('--maxdisp', type=int, default=328,
+                    help='maximum disparity')  # 65516
 parser.add_argument('--model', default='stackhourglass',
                     help='select model')
 parser.add_argument('--datatype', default='2015',
@@ -91,9 +91,6 @@ optimizer = optim.Adam(model.parameters(), lr=0.1, betas=(0.9, 0.999))
 
 def train(imgL, imgR, disp_L):
     model.train()
-    imgL = torch.tensor(imgL)
-    imgR = torch.tensor(imgR)
-    disp_L = torch.tensor(disp_L)
 
     if args.cuda:
         imgL, imgR, disp_L = imgL.cuda(), imgR.cuda(), disp_L.cuda()
@@ -130,8 +127,6 @@ def train(imgL, imgR, disp_L):
 
 def test(imgL, imgR, disp_true):
     model.eval()
-    imgL = torch.tensor(imgL)
-    imgR = torch.tensor(imgR)
     if args.cuda:
         imgL, imgR = imgL.cuda(), imgR.cuda()
 
