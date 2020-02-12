@@ -10,7 +10,7 @@ from PIL import Image
 
 from psmnet.dataloader import preprocess
 
-MAX_DISP = 65516
+
 IMG_EXTENSIONS = [
     '.jpg', '.JPG', '.jpeg', '.JPEG',
     '.png', '.PNG', '.ppm', '.PPM', '.bmp', '.BMP',
@@ -43,7 +43,7 @@ def default_loader(path):
 
 def disparity_loader(path):
     disp_img = Image.open(path)
-    disp = np.array(disp_img).astype(np.float32) / MAX_DISP
+    disp = np.array(disp_img).astype(np.float32)
     return disp
 
 

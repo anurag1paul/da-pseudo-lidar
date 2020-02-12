@@ -17,13 +17,13 @@ from psmnet.dataloader import ApolloLoader as apollo
 from psmnet.models import *
 
 parser = argparse.ArgumentParser(description='PSMNet')
-parser.add_argument('--maxdisp', type=int, default=192,
-                    help='maxium disparity')
+parser.add_argument('--maxdisp', type=int, default=65516,
+                    help='maximum disparity')
 parser.add_argument('--model', default='stackhourglass',
                     help='select model')
 parser.add_argument('--datatype', default='2015',
                     help='datapath')
-parser.add_argument('--datapath', default='/apollo/',
+parser.add_argument('--datapath', default='../apollo/',
                     help='datapath')
 parser.add_argument('--epochs', type=int, default=300,
                     help='number of epochs to train')
@@ -53,12 +53,19 @@ if not os.path.isdir(args.savemodel):
 print(os.path.join(args.savemodel, 'training.log'))
 log = logger.setup_logger(os.path.join(args.savemodel, 'training.log'))
 
-all_left_img, all_right_img, all_left_disp, = apollo.dataloader(
-    args.datapath.split(","))
+all_left_img, all_right_img, all_left_disp = apollo.dataloader(
+    args.datapath, "apollo/train.csv")
+
+val_left_img, val_right_img, val_left_disp = apollo.dataloader(
+    args.datapath, "apollo/va.csv")
 
 TrainImgLoader = torch.utils.data.DataLoader(
     apollo.ImageLoader(all_left_img, all_right_img, all_left_disp, True),
     batch_size=args.btrain, shuffle=True, num_workers=14, drop_last=False)
+
+ValImgLoader = torch.utils.data.DataLoader(
+    apollo.ImageLoader(val_left_img, val_right_img, val_left_disp, False),
+    batch_size=args.btrain, shuffle=False, num_workers=14, drop_last=False)
 
 if args.model == 'stackhourglass':
     model = stackhourglass(args.maxdisp)
@@ -165,7 +172,7 @@ def main():
         total_train_loss = 0
         adjust_learning_rate(optimizer, epoch)
 
-        ## training ##
+        # training
         for batch_idx, (imgL_crop, imgR_crop, disp_crop_L) in enumerate(
                 TrainImgLoader):
             start_time = time.time()
@@ -176,6 +183,17 @@ def main():
             total_train_loss += loss
         print('epoch %d total training loss = %.3f' % (
         epoch, total_train_loss / len(TrainImgLoader)))
+
+        # validation
+        total_val_loss = 0
+        for batch_idx, (imgL, imgR, disp_L) in enumerate(ValImgLoader):
+            val_start_time = time.time()
+            loss = test(imgL, imgR, disp_L)
+            print('Iter %d validation loss = %.3f , time = %.2f' % (
+            batch_idx, loss, time.time() - val_start_time))
+            total_val_loss += loss
+        print('epoch %d total validation loss = %.3f' % (
+        epoch, total_val_loss / len(ValImgLoader)))
 
         # SAVE
         if not os.path.isdir(args.savemodel):
