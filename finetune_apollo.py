@@ -17,7 +17,7 @@ from psmnet.dataloader import ApolloLoader as apollo
 from psmnet.models import *
 
 parser = argparse.ArgumentParser(description='PSMNet')
-parser.add_argument('--maxdisp', type=int, default=320,
+parser.add_argument('--maxdisp', type=int, default=160,
                     help='maximum disparity')  # 65516
 parser.add_argument('--model', default='stackhourglass',
                     help='select model')
