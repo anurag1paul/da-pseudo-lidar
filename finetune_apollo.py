@@ -27,7 +27,7 @@ parser.add_argument('--datapath', default='../apollo/',
                     help='datapath')
 parser.add_argument('--epochs', type=int, default=300,
                     help='number of epochs to train')
-parser.add_argument('--loadmodel', default='./trained/submission_model.tar',
+parser.add_argument('--loadmodel', default='psmnet/trained/pretrained_sceneflow.tar',
                     help='load model')
 parser.add_argument('--savemodel', default='./',
                     help='save model')
@@ -54,10 +54,10 @@ print(os.path.join(args.savemodel, 'training.log'))
 log = logger.setup_logger(os.path.join(args.savemodel, 'training.log'))
 
 all_left_img, all_right_img, all_left_disp = apollo.dataloader(
-    args.datapath, "apollo/train.csv")
+    args.datapath, "psmnet/apollo/train.csv")
 
 val_left_img, val_right_img, val_left_disp = apollo.dataloader(
-    args.datapath, "apollo/va.csv")
+    args.datapath, "psmnet/apollo/val.csv")
 
 TrainImgLoader = torch.utils.data.DataLoader(
     apollo.ImageLoader(all_left_img, all_right_img, all_left_disp, True),
