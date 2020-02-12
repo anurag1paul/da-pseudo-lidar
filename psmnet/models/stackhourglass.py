@@ -33,13 +33,17 @@ class hourglass(nn.Module):
 
         out = self.conv1(x)  # in:1/4 out:1/8
         pre = self.conv2(out)  # in:1/8 out:1/8
+        # print("x, out, pre", x.shape, out.shape, pre.shape)
+
         if postsqu is not None:
             pre = F.relu(pre + postsqu, inplace=True)
         else:
             pre = F.relu(pre, inplace=True)
 
         out = self.conv3(pre)  # in:1/8 out:1/16
+        # print("conv3", out.shape)
         out = self.conv4(out)  # in:1/16 out:1/16
+        # print("conv4", out.shape)
 
         if presqu is not None:
             post = F.relu(self.conv5(out) + presqu, inplace=True)  # in:1/16 out:1/8
@@ -108,10 +112,10 @@ class PSMNet(nn.Module):
 
         # matching
         cost = torch.zeros((refimg_fea.size()[0], refimg_fea.size()[1] * 2,
-                           self.maxdisp / 4, refimg_fea.size()[2],
+                           self.maxdisp // 4, refimg_fea.size()[2],
                               refimg_fea.size()[3])).cuda()
 
-        for i in range(self.maxdisp / 4):
+        for i in range(self.maxdisp // 4):
             if i > 0:
                 cost[:, :refimg_fea.size()[1], i, :, i:] = refimg_fea[:, :, :, i:]
                 cost[:, refimg_fea.size()[1]:, i, :, i:] = targetimg_fea[:, :, :, :-i]

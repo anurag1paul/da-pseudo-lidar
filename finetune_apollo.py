@@ -17,7 +17,7 @@ from psmnet.dataloader import ApolloLoader as apollo
 from psmnet.models import *
 
 parser = argparse.ArgumentParser(description='PSMNet')
-parser.add_argument('--maxdisp', type=int, default=328,
+parser.add_argument('--maxdisp', type=int, default=320,
                     help='maximum disparity')  # 65516
 parser.add_argument('--model', default='stackhourglass',
                     help='select model')
@@ -122,7 +122,7 @@ def train(imgL, imgR, disp_L):
     loss.backward()
     optimizer.step()
 
-    return loss.data[0]
+    return loss.item()
 
 
 def test(imgL, imgR, disp_true):
