@@ -13,7 +13,7 @@ import torch.optim as optim
 import torch.utils.data
 from torch.autograd import Variable
 
-from psmnet import logger
+from psmnet.utils import logger
 from psmnet.dataloader import KITTILoader3D as ls
 from psmnet.dataloader import KITTILoader_dataset3d as DA
 from psmnet.models import *

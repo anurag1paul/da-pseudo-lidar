@@ -12,7 +12,7 @@ import torch.nn.parallel
 import torch.optim as optim
 import torch.utils.data
 
-from psmnet import logger
+from psmnet.utils import logger
 from psmnet.dataloader import ApolloLoader as apollo
 from psmnet.models import *
 
