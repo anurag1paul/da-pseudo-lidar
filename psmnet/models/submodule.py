@@ -78,7 +78,7 @@ class disparityregression(nn.Module):
 
     def forward(self, x):
         disp = self.disp.repeat(x.size()[0], 1, x.size()[2], x.size()[3])
-        out = torch.sum(x * disp, 1)
+        out = torch.sum(x.float() * disp.float(), 1)
         return out
 
 

@@ -40,6 +40,7 @@ parser.add_argument('--lr_scale', type=int, default=200, metavar='S',
 parser.add_argument('--split_file', default='Kitti/object/train.txt',
                     help='save model')
 parser.add_argument('--btrain', type=int, default=4)
+parser.add_argument('--num_workers', type=int, default=4)
 parser.add_argument('--start_epoch', type=int, default=1)
 
 args = parser.parse_args()
@@ -61,11 +62,11 @@ val_left_img, val_right_img, val_left_disp = apollo.dataloader(
 
 TrainImgLoader = torch.utils.data.DataLoader(
     apollo.ImageLoader(all_left_img, all_right_img, all_left_disp, True),
-    batch_size=args.btrain, shuffle=True, num_workers=14, drop_last=False)
+    batch_size=args.btrain, shuffle=True, num_workers=args.num_workers, drop_last=False)
 
 ValImgLoader = torch.utils.data.DataLoader(
     apollo.ImageLoader(val_left_img, val_right_img, val_left_disp, False),
-    batch_size=1, shuffle=False, num_workers=14, drop_last=False)
+    batch_size=args.btrain, shuffle=False, num_workers=args.num_workers, drop_last=False)
 
 if args.model == 'stackhourglass':
     model = stackhourglass(args.maxdisp)
@@ -177,7 +178,7 @@ def main():
                 print('Iter %d training loss = %.3f , time = %.2f' % (
                     batch_idx, loss, time.time() - start_time))
             total_train_loss += loss
-        
+
         print('epoch %d total training loss = %.3f' % (
         epoch, total_train_loss / len(TrainImgLoader)))
 
@@ -218,7 +219,6 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
-
 
 if __name__ == '__main__':
     main()
