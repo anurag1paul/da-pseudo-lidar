@@ -25,7 +25,7 @@ parser.add_argument('--datatype', default='2015',
                     help='datapath')
 parser.add_argument('--datapath', default='../apollo/',
                     help='datapath')
-parser.add_argument('--epochs', type=int, default=300,
+parser.add_argument('--epochs', type=int, default=150,
                     help='number of epochs to train')
 parser.add_argument('--loadmodel', default='psmnet/trained/pretrained_sceneflow.tar',
                     help='load model')
@@ -35,7 +35,9 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
-parser.add_argument('--lr_scale', type=int, default=200, metavar='S',
+parser.add_argument('--lr', type=float, default=0.002, metavar='S',
+                    help='learning rate(default: 0.001)')
+parser.add_argument('--lr_scale', type=int, default=100, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--split_file', default='Kitti/object/train.txt',
                     help='save model')
@@ -87,7 +89,7 @@ if args.loadmodel is not None:
 print('Number of model parameters: {}'.format(
     sum([p.data.nelement() for p in model.parameters()])))
 
-optimizer = optim.Adam(model.parameters(), lr=0.1, betas=(0.9, 0.999))
+optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.999))
 
 
 def train(imgL, imgR, disp_L):
@@ -152,9 +154,9 @@ def test(imgL, imgR, disp_true):
 
 def adjust_learning_rate(optimizer, epoch):
     if epoch <= args.lr_scale:
-        lr = 0.001
+        lr = args.lr
     else:
-        lr = 0.0001
+        lr = args.lr / 10
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 
