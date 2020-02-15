@@ -25,21 +25,24 @@ parser.add_argument('--datatype', default='2015',
                     help='datapath')
 parser.add_argument('--datapath', default='../apollo/',
                     help='datapath')
-parser.add_argument('--epochs', type=int, default=300,
+parser.add_argument('--epochs', type=int, default=150,
                     help='number of epochs to train')
 parser.add_argument('--loadmodel', default='psmnet/trained/pretrained_sceneflow.tar',
                     help='load model')
-parser.add_argument('--savemodel', default='./',
+parser.add_argument('--savemodel', default='./psmnet/trained/',
                     help='save model')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
-parser.add_argument('--lr_scale', type=int, default=200, metavar='S',
+parser.add_argument('--lr', type=float, default=0.002, metavar='S',
+                    help='learning rate(default: 0.001)')
+parser.add_argument('--lr_scale', type=int, default=100, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--split_file', default='Kitti/object/train.txt',
                     help='save model')
 parser.add_argument('--btrain', type=int, default=4)
+parser.add_argument('--num_workers', type=int, default=4)
 parser.add_argument('--start_epoch', type=int, default=1)
 
 args = parser.parse_args()
@@ -61,11 +64,11 @@ val_left_img, val_right_img, val_left_disp = apollo.dataloader(
 
 TrainImgLoader = torch.utils.data.DataLoader(
     apollo.ImageLoader(all_left_img, all_right_img, all_left_disp, True),
-    batch_size=args.btrain, shuffle=True, num_workers=14, drop_last=False)
+    batch_size=args.btrain, shuffle=True, num_workers=args.num_workers, drop_last=False)
 
 ValImgLoader = torch.utils.data.DataLoader(
     apollo.ImageLoader(val_left_img, val_right_img, val_left_disp, False),
-    batch_size=1, shuffle=False, num_workers=14, drop_last=False)
+    batch_size=args.btrain, shuffle=False, num_workers=args.num_workers, drop_last=False)
 
 if args.model == 'stackhourglass':
     model = stackhourglass(args.maxdisp)
@@ -86,7 +89,7 @@ if args.loadmodel is not None:
 print('Number of model parameters: {}'.format(
     sum([p.data.nelement() for p in model.parameters()])))
 
-optimizer = optim.Adam(model.parameters(), lr=0.1, betas=(0.9, 0.999))
+optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.999))
 
 
 def train(imgL, imgR, disp_L):
@@ -151,9 +154,9 @@ def test(imgL, imgR, disp_true):
 
 def adjust_learning_rate(optimizer, epoch):
     if epoch <= args.lr_scale:
-        lr = 0.001
+        lr = args.lr
     else:
-        lr = 0.0001
+        lr = args.lr / 10
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 
@@ -177,7 +180,7 @@ def main():
                 print('Iter %d training loss = %.3f , time = %.2f' % (
                     batch_idx, loss, time.time() - start_time))
             total_train_loss += loss
-        
+
         print('epoch %d total training loss = %.3f' % (
         epoch, total_train_loss / len(TrainImgLoader)))
 
@@ -218,7 +221,6 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
-
 
 if __name__ == '__main__':
     main()
