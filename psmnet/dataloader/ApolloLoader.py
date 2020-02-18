@@ -10,7 +10,7 @@ from PIL import Image
 
 from psmnet.dataloader import preprocess
 
-DISP_NORM =400
+DISP_NORM =200
 
 IMG_EXTENSIONS = [
     '.jpg', '.JPG', '.jpeg', '.JPEG',
