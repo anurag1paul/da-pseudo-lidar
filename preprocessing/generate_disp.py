@@ -2,24 +2,29 @@ import argparse
 import os
 
 import numpy as np
-import scipy.misc as ssc
+import skimage.io as skio
+import matplotlib.pyplot as plt
 
-from . import kitti_util
+import kitti_util
 
 
 def generate_dispariy_from_velo(pc_velo, height, width, calib):
     pts_2d = calib.project_velo_to_image(pc_velo)
+
     fov_inds = (pts_2d[:, 0] < width - 1) & (pts_2d[:, 0] >= 0) & \
                (pts_2d[:, 1] < height - 1) & (pts_2d[:, 1] >= 0)
     fov_inds = fov_inds & (pc_velo[:, 0] > 2)
+
     imgfov_pc_velo = pc_velo[fov_inds, :]
-    imgfov_pts_2d = pts_2d[fov_inds, :]
+    imgfov_pts_2d  = pts_2d[fov_inds, :]
     imgfov_pc_rect = calib.project_velo_to_rect(imgfov_pc_velo)
-    depth_map = np.zeros((height, width)) - 1
-    imgfov_pts_2d = np.round(imgfov_pts_2d).astype(int)
+    depth_map      = np.zeros((height, width)) - 1
+    imgfov_pts_2d  = np.round(imgfov_pts_2d).astype(int)
+
     for i in range(imgfov_pts_2d.shape[0]):
         depth = imgfov_pc_rect[i, 2]
         depth_map[int(imgfov_pts_2d[i, 1]), int(imgfov_pts_2d[i, 0])] = depth
+
     baseline = 0.54
 
     disp_map = (calib.f_u * baseline) / depth_map
@@ -52,6 +57,8 @@ if __name__ == '__main__':
     with open(args.split_file, 'r') as f:
         file_names = [x.strip() for x in f.readlines()]
 
+    print(f'found {len(lidar_files)} files ...')
+
     for fn in lidar_files:
         predix = fn[:-4]
         if predix not in file_names:
@@ -61,8 +68,9 @@ if __name__ == '__main__':
         # load point cloud
         lidar = np.fromfile(lidar_dir + '/' + fn, dtype=np.float32).reshape((-1, 4))[:, :3]
         image_file = '{}/{}.png'.format(image_dir, predix)
-        image = ssc.imread(image_file)
+        image = skio.imread(image_file)
         height, width = image.shape[:2]
         disp = generate_dispariy_from_velo(lidar, height, width, calib)
         np.save(disparity_dir + '/' + predix, disp)
+        # skio.imsave(f'disp_{predix}.png', disp)
         print('Finish Disparity {}'.format(predix))
