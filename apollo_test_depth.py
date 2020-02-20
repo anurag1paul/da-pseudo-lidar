@@ -90,14 +90,20 @@ def main():
 
         imgL_o = (skimage.io.imread(test_left_img[inx]).astype('float32'))
         imgR_o = (skimage.io.imread(test_right_img[inx]).astype('float32'))
+        imgL_o = skimage.transform.rescale(imgL_o, 0.5)
+        imgR_o = skimage.transform.rescale(imgR_o, 0.5)
+
         imgL = processed(imgL_o).numpy()
         imgR = processed(imgR_o).numpy()
         imgL = np.reshape(imgL, [1, 3, imgL.shape[1], imgL.shape[2]])
         imgR = np.reshape(imgR, [1, 3, imgR.shape[1], imgR.shape[2]])
 
-        # pad to (960, 3136)
-        top_pad = 960 - imgL.shape[2]
-        left_pad = 3136 - imgL.shape[3]
+        # pad to (480, 1568)
+        t = 480
+        l = 1568
+
+        top_pad = t - imgL.shape[2]
+        left_pad = l - imgL.shape[3]
         imgL = np.lib.pad(imgL, ((0, 0), (0, 0), (top_pad, 0), (0, left_pad)),
                           mode='constant', constant_values=0)
         imgR = np.lib.pad(imgR, ((0, 0), (0, 0), (top_pad, 0), (0, left_pad)),
@@ -107,8 +113,8 @@ def main():
         pred_disp = test(imgL, imgR)  # normalize disparity to ground truth
         print('time = %.2f' % (time.time() - start_time))
 
-        top_pad = 960 - imgL_o.shape[0]
-        left_pad = 3136 - imgL_o.shape[1]
+        top_pad = t - imgL_o.shape[0]
+        left_pad = l - imgL_o.shape[1]
         img = pred_disp[top_pad:, :-left_pad]
         print(test_left_img[inx].split('/')[-1])
         if args.save_figure:
