@@ -88,10 +88,10 @@ def main():
 
     for inx in range(len(test_left_img)):
 
-        imgL_o = (skimage.io.imread(test_left_img[inx]).astype('float32'))
-        imgR_o = (skimage.io.imread(test_right_img[inx]).astype('float32'))
-        imgL_o = skimage.transform.rescale(imgL_o, 0.5)
-        imgR_o = skimage.transform.rescale(imgR_o, 0.5)
+        imgL_o = skimage.io.imread(test_left_img[inx])
+        imgR_o = skimage.io.imread(test_right_img[inx])
+        imgL_o = skimage.transform.rescale(imgL_o, 0.5).astype('float32')
+        imgR_o = skimage.transform.rescale(imgR_o, 0.5).astype('float32')
 
         imgL = processed(imgL_o).numpy()
         imgR = processed(imgR_o).numpy()
