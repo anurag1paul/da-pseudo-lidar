@@ -28,7 +28,7 @@ parser.add_argument('--loadmodel', default=None,
 parser.add_argument('--model', default='stackhourglass',
                     help='select model')
 parser.add_argument('--maxdisp', type=int, default=192,
-                    help='maxium disparity')
+                    help='maximum disparity')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
@@ -70,8 +70,8 @@ def test(imgL, imgR):
     model.eval()
 
     if args.cuda:
-        imgL = imgL.cuda()
-        imgR = imgR.cuda()
+        imgL = torch.from_numpy(imgL).cuda()
+        imgR = torch.from_numpy(imgR).cuda()
 
     with torch.no_grad():
         output = model(imgL, imgR)
