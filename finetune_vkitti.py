@@ -88,6 +88,7 @@ print('Number of model parameters: {}'.format(
 
 optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.999))
 
+
 def train(imgL, imgR, disp_L):
     model.train()
 
@@ -97,7 +98,6 @@ def train(imgL, imgR, disp_L):
     # ---------
     mask = (disp_L > 0)
     mask.detach_()
-    print(mask.size())
     # ----
 
     optimizer.zero_grad()
@@ -189,7 +189,7 @@ def main():
             total_val_loss += loss
             if batch_idx == 50:
                 break
-                
+
         print('epoch %d total validation loss = %.3f' % (
         epoch, total_val_loss / len(ValImgLoader)))
 
