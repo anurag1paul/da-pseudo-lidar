@@ -47,9 +47,6 @@ parser.add_argument('--start_epoch', type=int, default=1)
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
-# torch.manual_seed(args.seed)
-# if args.cuda:
-#     torch.cuda.manual_seed(args.seed)
 
 if not os.path.isdir(args.savemodel):
     os.makedirs(args.savemodel)
@@ -68,7 +65,7 @@ TrainImgLoader = torch.utils.data.DataLoader(
 
 ValImgLoader = torch.utils.data.DataLoader(
     apollo.ImageLoader(val_left_img, val_right_img, val_left_disp, False),
-    batch_size=args.btrain, shuffle=False, num_workers=args.num_workers, drop_last=False)
+    batch_size = int(args.btrain / 4), shuffle=False, num_workers = int(args.num_workers / 4), drop_last=False)
 
 if args.model == 'stackhourglass':
     model = stackhourglass(args.maxdisp)
@@ -99,7 +96,7 @@ def train(imgL, imgR, disp_L):
         imgL, imgR, disp_L = imgL.cuda(), imgR.cuda(), disp_L.cuda()
 
     # ---------
-    mask = (disp_L > 0)
+    mask = (disp_L > 0)  # generate mask for disparities
     mask.detach_()
     # ----
 
@@ -125,6 +122,9 @@ def train(imgL, imgR, disp_L):
     loss.backward()
     optimizer.step()
 
+    # fit to mem
+    torch.cuda.empty_cache()
+
     return loss.item()
 
 
@@ -147,6 +147,7 @@ def test(imgL, imgR, disp_true):
     correct = (disp_true[index[0][:], index[1][:], index[2][:]] < 3) | (
             disp_true[index[0][:], index[1][:], index[2][:]] < true_disp[
         index[0][:], index[1][:], index[2][:]] * 0.05)
+
     torch.cuda.empty_cache()
 
     return 1 - (float(torch.sum(correct)) / float(len(index[0])))
@@ -184,6 +185,8 @@ def main():
         print('epoch %d total training loss = %.3f' % (
         epoch, total_train_loss / len(TrainImgLoader)))
 
+        torch.cuda.empty_cache()
+
         # validation
         total_val_loss = 0
         for batch_idx, (imgL, imgR, disp_L) in enumerate(ValImgLoader):
@@ -194,14 +197,15 @@ def main():
         epoch, total_val_loss / len(ValImgLoader)))
 
         # SAVE
-        if not os.path.isdir(args.savemodel):
-            os.makedirs(args.savemodel)
-        savefilename = args.savemodel + '/finetune_' + str(epoch) + '.tar'
-        torch.save({
-            'epoch': epoch,
-            'state_dict': model.state_dict(),
-            'train_loss': total_train_loss / len(TrainImgLoader),
-        }, savefilename)
+        if epoch%5 == 0:
+            if not os.path.isdir(args.savemodel):
+                os.makedirs(args.savemodel)
+            savefilename = args.savemodel + '/finetune_' + str(epoch) + '.tar'
+            torch.save({
+                'epoch': epoch,
+                'state_dict': model.state_dict(),
+                'train_loss': total_train_loss / len(TrainImgLoader),
+            }, savefilename)
 
 
 class AverageMeter(object):
