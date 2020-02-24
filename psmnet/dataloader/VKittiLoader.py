@@ -44,7 +44,7 @@ def default_loader(path):
 
 
 def disparity_loader(path):
-    depth = Image.open(path)
+    depth = np.array(Image.open(path)).astype(np.float64)
     baseline = 0.54
 
     disparity = (baseline * calib[0][0]) / (depth + 1e-6)
