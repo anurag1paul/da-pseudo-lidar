@@ -1,21 +1,22 @@
-# 3130 x 960
 import os
 import random
-
+import pandas as pd
 import numpy as np
 import torch
 import torch.utils.data as data
-import pandas as pd
 from PIL import Image
+import scipy.misc as ssc
+import cv2
 
 from psmnet.dataloader import preprocess
-
-DISP_NORM = 400
 
 IMG_EXTENSIONS = [
     '.jpg', '.JPG', '.jpeg', '.JPEG',
     '.png', '.PNG', '.ppm', '.PPM', '.bmp', '.BMP',
 ]
+
+
+calib = [[725.0087, 0, 620.5], [0, 725.0087, 187], [0, 0, 1]]
 
 
 def is_image_file(filename):
@@ -31,9 +32,9 @@ def dataloader(root_dir, split_file):
     """
     files = pd.read_csv(split_file, header=0)
 
-    left_train = list(files["left"].apply(lambda x: os.path.join(root_dir, x)))
-    right_train = list(files["right"].apply(lambda x: os.path.join(root_dir, x)))
-    disp_train = list(files["disparity"].apply(lambda x: os.path.join(root_dir, x)))
+    left_train  = list(files["left"].apply(lambda x: root_dir + x))
+    right_train = list(files["right"].apply(lambda x: root_dir + x))
+    disp_train  = list(files["depth"].apply(lambda x: root_dir + x))
 
     return left_train, right_train, disp_train
 
@@ -43,9 +44,11 @@ def default_loader(path):
 
 
 def disparity_loader(path):
-    disp_img = Image.open(path)
-    disp = np.array(disp_img).astype(np.float64) / DISP_NORM
-    return disp
+    depth = np.array(Image.open(path)).astype(np.float64)
+    baseline = 0.54
+
+    disparity = (baseline * calib[0][0]) / (depth + 1e-6)
+    return disparity
 
 
 class ImageLoader(data.Dataset):
@@ -70,7 +73,7 @@ class ImageLoader(data.Dataset):
 
         if self.training:
             w, h = left_img.size
-            th, tw = 256, 768
+            th, tw = 256, 512
 
             x1 = random.randint(0, w - tw)
             y1 = random.randint(0, h - th)
@@ -86,14 +89,12 @@ class ImageLoader(data.Dataset):
 
         else:
             w, h = left_img.size
-            th, tw = 512, 1024
-            x1 = random.randint(0, w - tw)
-            y1 = random.randint(0, h - th)
 
-            left_img = left_img.crop((x1, y1, x1 + tw, y1 + th))
-            right_img = right_img.crop((x1, y1, x1 + tw, y1 + th))
+            left_img = left_img.crop((w - 1200, h - 352, w, h))
+            right_img = right_img.crop((w - 1200, h - 352, w, h))
+            w1, h1 = left_img.size
 
-            dataL = dataL[y1:y1 + th, x1:x1 + tw]
+            dataL = dataL[h - 352:h, w - 1200:w]
 
             processed = preprocess.get_transform(augment=False)
             left_img = processed(left_img)

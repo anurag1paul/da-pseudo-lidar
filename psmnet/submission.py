@@ -47,7 +47,7 @@ if args.cuda:
 if args.KITTI == '2015':
    from dataloader import KITTI_submission_loader as DA
 else:
-   from dataloader import KITTI_submission_loader2012 as DA  
+   from dataloader import KITTI_submission_loader2012 as DA
 
 
 test_left_img, test_right_img = DA.dataloader(args.datapath)
@@ -59,7 +59,7 @@ elif args.model == 'basic':
 else:
     print('no model')
 
-model = nn.DataParallel(model, device_ids=[0])
+model = nn.DataParallel(model)
 model.cuda()
 
 if args.loadmodel is not None:
@@ -73,7 +73,7 @@ def test(imgL,imgR):
 
         if args.cuda:
            imgL = torch.FloatTensor(imgL).cuda()
-           imgR = torch.FloatTensor(imgR).cuda()     
+           imgR = torch.FloatTensor(imgR).cuda()
 
         imgL, imgR= Variable(imgL), Variable(imgR)
 

@@ -13,7 +13,7 @@ import torch.optim as optim
 import torch.utils.data
 
 from psmnet.utils import logger
-from psmnet.dataloader import ApolloLoader as apollo
+from psmnet.dataloader import VKittiLoader as VKitti
 from psmnet.models import *
 
 parser = argparse.ArgumentParser(description='PSMNet')
@@ -23,7 +23,7 @@ parser.add_argument('--model', default='stackhourglass',
                     help='select model')
 parser.add_argument('--datatype', default='2015',
                     help='datapath')
-parser.add_argument('--datapath', default='../apollo/',
+parser.add_argument('--datapath', default='../vkitti',
                     help='datapath')
 parser.add_argument('--epochs', type=int, default=150,
                     help='number of epochs to train')
@@ -35,7 +35,7 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
-parser.add_argument('--lr', type=float, default=0.002, metavar='S',
+parser.add_argument('--lr', type=float, default=0.001, metavar='S',
                     help='learning rate(default: 0.001)')
 parser.add_argument('--lr_scale', type=int, default=100, metavar='S',
                     help='random seed (default: 1)')
@@ -53,19 +53,19 @@ if not os.path.isdir(args.savemodel):
 print(os.path.join(args.savemodel, 'training.log'))
 log = logger.setup_logger(os.path.join(args.savemodel, 'training.log'))
 
-all_left_img, all_right_img, all_left_disp = apollo.dataloader(
-    args.datapath, "psmnet/apollo/train.csv")
+all_left_img, all_right_img, all_left_disp = VKitti.dataloader(
+    args.datapath, "psmnet/vkitti/train.csv")
 
-val_left_img, val_right_img, val_left_disp = apollo.dataloader(
-    args.datapath, "psmnet/apollo/val.csv")
+val_left_img, val_right_img, val_left_disp = VKitti.dataloader(
+    args.datapath, "psmnet/vkitti/val.csv")
 
 TrainImgLoader = torch.utils.data.DataLoader(
-    apollo.ImageLoader(all_left_img, all_right_img, all_left_disp, True),
+    VKitti.ImageLoader(all_left_img, all_right_img, all_left_disp, True),
     batch_size=args.btrain, shuffle=True, num_workers=args.num_workers, drop_last=False)
 
 ValImgLoader = torch.utils.data.DataLoader(
-    apollo.ImageLoader(val_left_img, val_right_img, val_left_disp, False),
-    batch_size = int(args.btrain / 4), shuffle=False, num_workers = int(args.num_workers / 4), drop_last=False)
+    VKitti.ImageLoader(val_left_img, val_right_img, val_left_disp, False),
+    batch_size=args.btrain, shuffle=False, num_workers=args.num_workers, drop_last=False)
 
 if args.model == 'stackhourglass':
     model = stackhourglass(args.maxdisp)
@@ -96,7 +96,7 @@ def train(imgL, imgR, disp_L):
         imgL, imgR, disp_L = imgL.cuda(), imgR.cuda(), disp_L.cuda()
 
     # ---------
-    mask = (disp_L > 0)  # generate mask for disparities
+    mask = (disp_L > 0)
     mask.detach_()
     # ----
 
@@ -122,9 +122,6 @@ def train(imgL, imgR, disp_L):
     loss.backward()
     optimizer.step()
 
-    # fit to mem
-    torch.cuda.empty_cache()
-
     return loss.item()
 
 
@@ -147,7 +144,6 @@ def test(imgL, imgR, disp_true):
     correct = (disp_true[index[0][:], index[1][:], index[2][:]] < 3) | (
             disp_true[index[0][:], index[1][:], index[2][:]] < true_disp[
         index[0][:], index[1][:], index[2][:]] * 0.05)
-
     torch.cuda.empty_cache()
 
     return 1 - (float(torch.sum(correct)) / float(len(index[0])))
@@ -185,46 +181,28 @@ def main():
         print('epoch %d total training loss = %.3f' % (
         epoch, total_train_loss / len(TrainImgLoader)))
 
-        torch.cuda.empty_cache()
-
         # validation
         total_val_loss = 0
         for batch_idx, (imgL, imgR, disp_L) in enumerate(ValImgLoader):
             val_start_time = time.time()
             loss = test(imgL, imgR, disp_L)
             total_val_loss += loss
+            if batch_idx == 50:
+                break
+
         print('epoch %d total validation loss = %.3f' % (
         epoch, total_val_loss / len(ValImgLoader)))
 
         # SAVE
-        if epoch%5 == 0:
-            if not os.path.isdir(args.savemodel):
-                os.makedirs(args.savemodel)
-            savefilename = args.savemodel + '/finetune_' + str(epoch) + '.tar'
-            torch.save({
-                'epoch': epoch,
-                'state_dict': model.state_dict(),
-                'train_loss': total_train_loss / len(TrainImgLoader),
-            }, savefilename)
+        if not os.path.isdir(args.savemodel):
+            os.makedirs(args.savemodel)
+        savefilename = args.savemodel + '/finetune_' + str(epoch) + '.tar'
+        torch.save({
+            'epoch': epoch,
+            'state_dict': model.state_dict(),
+            'train_loss': total_train_loss / len(TrainImgLoader),
+        }, savefilename)
 
-
-class AverageMeter(object):
-    """Computes and stores the average and current value"""
-
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
 
 if __name__ == '__main__':
     main()
