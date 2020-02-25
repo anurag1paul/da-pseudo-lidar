@@ -44,10 +44,10 @@ def default_loader(path):
 
 
 def disparity_loader(path):
-    depth = np.array(Image.open(path)).astype(np.float64)
+    depth = np.array(Image.open(path)).astype(np.float64) / 100.0 # convert to meters
     baseline = 0.54
 
-    disparity = (baseline * calib[0][0]) / (depth + 1e-6)
+    disparity = (1.5 * baseline * calib[0][0]) / (depth + 1e-6) # enhance disparity for better training
     return disparity
 
 

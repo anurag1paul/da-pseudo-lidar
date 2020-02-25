@@ -187,7 +187,7 @@ def main():
             val_start_time = time.time()
             loss = test(imgL, imgR, disp_L)
             total_val_loss += loss
-            if batch_idx == 50:
+            if batch_idx == 25:
                 break
 
         print('epoch %d total validation loss = %.3f' % (
