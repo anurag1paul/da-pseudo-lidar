@@ -6,7 +6,6 @@ import torch
 import torch.utils.data as data
 from PIL import Image
 import scipy.misc as ssc
-import cv2
 
 from psmnet.dataloader import preprocess
 
