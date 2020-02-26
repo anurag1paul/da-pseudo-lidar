@@ -1,2 +1,2 @@
-from models.kitti.frustum.segmentation.pointnet import InstanceSegmentationPointNet, InstanceSegmentationPVCNN
-from models.kitti.frustum.segmentation.pointnetpp import InstanceSegmentationPointNet2
+from models.segmentation.pointnet import InstanceSegmentationPointNet, InstanceSegmentationPVCNN
+from models.segmentation.pointnetpp import InstanceSegmentationPointNet2

@@ -4,9 +4,9 @@ import numpy as np
 import torch.nn as nn
 
 import modules.functional as F
-from models.kitti.frustum.box_estimation import *
-from models.kitti.frustum.segmentation import *
-from models.kitti.frustum.center_regression_net import CenterRegressionNet
+from models.box_estimation import *
+from models.segmentation import *
+from models.center_regression_net import CenterRegressionNet
 
 __all__ = ['FrustumPointNet', 'FrustumPointNet2', 'FrustumPVCNNE']
 

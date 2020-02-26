@@ -1,2 +1,2 @@
-from models.kitti.frustum.box_estimation.pointnet import BoxEstimationPointNet
-from models.kitti.frustum.box_estimation.pointnetpp import BoxEstimationPointNet2
+from models.box_estimation.pointnet import BoxEstimationPointNet
+from models.box_estimation.pointnetpp import BoxEstimationPointNet2
