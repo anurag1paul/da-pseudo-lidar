@@ -1,6 +1,6 @@
 import torch.optim as optim
 
-from models.kitti.frustum import FrustumPointNet
+from models.frustum_net import FrustumPointNet
 from utils.config import Config, configs
 
 # model
