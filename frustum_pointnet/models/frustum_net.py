@@ -5,6 +5,7 @@ import torch.nn as nn
 
 import modules.functional as F
 from models.box_estimation import *
+from models.point_dan.point_dan import InstanceSegmentationPointDAN
 from models.segmentation import *
 from models.center_regression_net import CenterRegressionNet
 
@@ -98,3 +99,57 @@ class FrustumPVCNNE(FrustumNet):
                          num_size_templates=num_size_templates, num_points_per_object=num_points_per_object,
                          size_templates=size_templates, extra_feature_channels=extra_feature_channels,
                          width_multiplier=width_multiplier)
+
+
+class FrustumPointDAN(FrustumNet):
+    def __init__(self, num_classes, num_heading_angle_bins, num_size_templates, num_points_per_object,
+                 size_templates, extra_feature_channels=1, width_multiplier=1):
+        super().__init__(num_classes=num_classes, instance_segmentation_net=InstanceSegmentationPointDAN,
+                         box_estimation_net=BoxEstimationPointNet, num_heading_angle_bins=num_heading_angle_bins,
+                         num_size_templates=num_size_templates, num_points_per_object=num_points_per_object,
+                         size_templates=size_templates, extra_feature_channels=extra_feature_channels,
+                         width_multiplier=width_multiplier)
+
+    def forward(self, inputs):
+        features = inputs['features']
+        one_hot_vectors = inputs['one_hot_vectors']
+        assert one_hot_vectors.dim() == 2
+
+        # foreground/background segmentation
+        mask_logits1, mask_logits2 = self.inst_seg_net(
+            {'features': features, 'one_hot_vectors': one_hot_vectors})
+        mask_logits = (mask_logits1 + mask_logits2) / 2.0
+
+        # mask out Background points
+        foreground_coords, foreground_coords_mean, _ = F.logits_mask(
+            coords=features[:, :3, :], logits=mask_logits,
+            num_points_per_object=self.num_points_per_object
+        )
+        # center regression
+        delta_coords = self.center_reg_net({'coords': foreground_coords,
+                                            'one_hot_vectors': one_hot_vectors})
+        foreground_coords = foreground_coords - delta_coords.unsqueeze(-1)
+        # box estimation
+        estimation = self.box_est_net({'coords': foreground_coords,
+                                       'one_hot_vectors': one_hot_vectors})
+        estimations = estimation.split([3, self.num_heading_angle_bins,
+                                        self.num_heading_angle_bins,
+                                        self.num_size_templates,
+                                        self.num_size_templates * 3], dim=-1)
+
+        # parse results
+        outputs = dict()
+        outputs['mask_logits'] = mask_logits
+        outputs['mask_logits1'] = mask_logits1
+        outputs['mask_logits2'] = mask_logits2
+        outputs['center_reg'] = foreground_coords_mean + delta_coords
+        outputs['center'] = estimations[0] + outputs['center_reg']
+        outputs['heading_scores'] = estimations[1]
+        outputs['heading_residuals_normalized'] = estimations[2]
+        outputs['heading_residuals'] = estimations[2] * (np.pi / self.num_heading_angle_bins)
+        outputs['size_scores'] = estimations[3]
+        size_residuals_normalized = estimations[4].view(-1, self.num_size_templates, 3)
+        outputs['size_residuals_normalized'] = size_residuals_normalized
+        outputs['size_residuals'] = size_residuals_normalized * self.size_templates
+
+        return outputs
