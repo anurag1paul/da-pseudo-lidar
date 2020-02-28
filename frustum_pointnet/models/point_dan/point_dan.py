@@ -4,7 +4,7 @@ from models.point_dan.model_utils import *
 from torch import nn
 
 # Channel Attention
-from models.utils import create_mlp_components
+from models.utils import create_mlp_components, create_pointnet_components
 
 
 class CALayer(nn.Module):
@@ -50,13 +50,21 @@ class PointnetG(nn.Module):
         super(PointnetG, self).__init__()
         self.trans_net1 = transform_net(4, 4)
         self.trans_net2 = transform_net(64, 64)
-        self.conv1 = conv_2d(4, 64, 1)
-        self.conv2 = conv_2d(64, 64, 1)
+
+        point_blocks = ((64, 3, None),)
+        cloud_blocks = ((128, 1, None), (1024, 1, None))
+
+        layers, channels_point, _ = create_pointnet_components(
+            blocks=point_blocks, in_channels=self.in_channels, with_se=False
+        )
+        self.point_features = nn.Sequential(*layers)
+
         # SA Node Module
         self.conv3 = adapt_layer_off()  # (64->128)
-        self.conv4 = conv_2d(128, 128, 1)
-        self.conv5 = conv_2d(128, 1024, 1)
-        self.bn1 = nn.BatchNorm1d(1024)
+        layers, channels_cloud, _ = create_pointnet_components(
+            blocks=cloud_blocks, in_channels=channels_point, with_se=False,
+        )
+        self.cloud_features = nn.Sequential(*layers)
 
     def forward(self, x, node=False):
         x_loc = x.squeeze(-1)
@@ -68,9 +76,7 @@ class PointnetG(nn.Module):
         
         x = x.unsqueeze(3)
         x = x.transpose(2, 1)
-        x = self.conv1(x)
-        x = self.conv2(x)
-        
+        x = self.point_features(x)
         transform = self.trans_net2(x)
         
         x = x.transpose(2, 1)
@@ -83,14 +89,9 @@ class PointnetG(nn.Module):
         x = x.transpose(2, 1)
         print(x.shape)
         x, node_feat, node_off = self.conv3(x, x_loc)
-        # x = [B, dim, num_node, 1]/[64, 64, 1024, 1]; x_loc = [B, xyz, num_node] / [64, 3, 1024]
 
-        x = self.conv4(x)
-        x = self.conv5(x)
-
-        x, _ = torch.max(x, dim=2, keepdim=False)
-        x = x.squeeze(-1)
-        x = self.bn1(x)
+        x = self.cloud_features(x)
+        x, _ = torch.max(x, dim=-1, keepdim=True)
 
         cloud_feat = x
         print("cloud", cloud_feat.shape)
@@ -163,6 +164,10 @@ class InstanceSegmentationPointDAN(nn.Module):
         if adaptation:
             cloud_feat = grad_reverse(cloud_feat, constant)
 
+        print(point_feat.shape, cloud_feat.shape)
+        cloud_feat = cloud_feat.values.repeat([1, 1, num_points])
+        print(point_feat.shape, cloud_feat.shape)
+        
         cls_input = torch.cat([one_hot_vectors, point_feat, cloud_feat], dim=1)
 
         y1 = self.c1(cls_input)
