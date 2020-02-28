@@ -90,7 +90,7 @@ configs.train.optimizer_g = Config(optim.Adam)
 configs.train.optimizer_g.lr = configs.train.base_lr
 
 configs.train.optimizer_cls = Config(optim.Adam)
-configs.train.optimizer_g.lr = 2 * configs.train.base_lr
+configs.train.optimizer_cls.lr = 2 * configs.train.base_lr
 
 configs.train.optimizer_dis = Config(optim.Adam)
-configs.train.optimizer_g.lr = configs.train.base_lr
+configs.train.optimizer_dis.lr = configs.train.base_lr
