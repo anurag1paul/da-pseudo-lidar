@@ -147,6 +147,7 @@ class InstanceSegmentationPointDAN(nn.Module):
             feat_node = feat_ori.view(batch_size, -1)
             feat_node_s = self.attention_s(feat_node.unsqueeze(2).unsqueeze(3))
             return feat_node_s
+
         elif node_adaptation_t:
             # target domain sa node feat
             feat_node = feat_ori.view(batch_size, -1)

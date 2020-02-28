@@ -9,7 +9,8 @@ from models.point_dan.point_dan import InstanceSegmentationPointDAN
 from models.segmentation import *
 from models.center_regression_net import CenterRegressionNet
 
-__all__ = ['FrustumPointNet', 'FrustumPointNet2', 'FrustumPVCNNE']
+__all__ = ['FrustumPointNet', 'FrustumPointNet2',
+           'FrustumPVCNNE', 'FrustumPointDAN']
 
 
 class FrustumNet(nn.Module):
