@@ -46,8 +46,9 @@ def grad_reverse(x, lambd=1.0):
 
 # Generator
 class PointnetG(nn.Module):
-    def __init__(self):
+    def __init__(self, in_channels):
         super(PointnetG, self).__init__()
+        self.in_channels= in_channels
         self.trans_net1 = transform_net(4, 4)
         self.trans_net2 = transform_net(64, 64)
 
@@ -109,7 +110,7 @@ class InstanceSegmentationPointDAN(nn.Module):
         self.in_channels = extra_feature_channels + 3
         self.num_classes = num_classes
 
-        self.g = PointnetG()
+        self.g = PointnetG(in_channels)
 
         self.attention_s = CALayer(64 * 64)
         self.attention_t = CALayer(64 * 64)
