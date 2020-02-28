@@ -63,7 +63,7 @@ class PointnetG(nn.Module):
         # SA Node Module
         self.conv3 = adapt_layer_off()  # (64->128)
         layers, channels_cloud, _ = create_pointnet_components(
-            blocks=cloud_blocks, in_channels=channels_point, with_se=False,
+            blocks=cloud_blocks, in_channels=2*channels_point, with_se=False,
         )
         self.cloud_features = nn.Sequential(*layers)
 
@@ -75,27 +75,25 @@ class PointnetG(nn.Module):
         x = x.squeeze(-1)
         x = torch.bmm(x, transform)
         
-        x = x.unsqueeze(3)
         x = x.transpose(2, 1)
-        x = self.point_features(x)
+        x, _ = self.point_features(x, x[:, :3, :])
+        x = x.unsqueeze(-1)
         transform = self.trans_net2(x)
         
         x = x.transpose(2, 1)
         x = x.squeeze(-1)
         x = torch.bmm(x, transform)
         point_feat = x
-        print("point", point_feat.shape)
 
         x = x.unsqueeze(3)
         x = x.transpose(2, 1)
-        print(x.shape)
         x, node_feat, node_off = self.conv3(x, x_loc)
-
-        x = self.cloud_features(x)
+        
+        x = x.squeeze(-1)
+        x, _ = self.cloud_features(x, node_feat)
         x, _ = torch.max(x, dim=-1, keepdim=True)
 
         cloud_feat = x
-        print("cloud", cloud_feat.shape)
 
         if node:
             return cloud_feat, point_feat, node_feat, node_off
@@ -110,7 +108,7 @@ class InstanceSegmentationPointDAN(nn.Module):
         self.in_channels = extra_feature_channels + 3
         self.num_classes = num_classes
 
-        self.g = PointnetG(in_channels)
+        self.g = PointnetG(self.in_channels)
 
         self.attention_s = CALayer(64 * 64)
         self.attention_t = CALayer(64 * 64)
@@ -166,7 +164,7 @@ class InstanceSegmentationPointDAN(nn.Module):
             cloud_feat = grad_reverse(cloud_feat, constant)
 
         print(point_feat.shape, cloud_feat.shape)
-        cloud_feat = cloud_feat.values.repeat([1, 1, num_points])
+        cloud_feat = cloud_feat.repeat([1, 1, num_points])
         print(point_feat.shape, cloud_feat.shape)
         
         cls_input = torch.cat([one_hot_vectors, point_feat, cloud_feat], dim=1)

@@ -36,7 +36,7 @@ class InstanceSegmentationNet(nn.Module):
         num_points = features.size(-1)
         one_hot_vectors = inputs['one_hot_vectors'].unsqueeze(-1).repeat([1, 1, num_points])
         assert one_hot_vectors.dim() == 3  # [B, C, N]
-
+        
         point_features, point_coords = self.point_features((features, features[:, :3, :]))
         cloud_features, _ = self.cloud_features((point_features, point_coords))
         cloud_features = cloud_features.max(dim=-1, keepdim=True).values.repeat([1, 1, num_points])
