@@ -14,4 +14,6 @@ configs.model.extra_feature_channels = 1
 
 # train: scheduler
 configs.train.scheduler_g = Config(optim.lr_scheduler.CosineAnnealingLR)
+configs.train.scheduler_g.T_max = configs.train.num_epochs
 configs.train.scheduler_c = Config(optim.lr_scheduler.CosineAnnealingLR)
+configs.train.scheduler_c.T_max = configs.train.num_epochs

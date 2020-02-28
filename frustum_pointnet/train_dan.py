@@ -155,7 +155,7 @@ def main():
 
             outputs = model(inputs)
 
-            pred_t1, pred_t2 = model.inst_seg_net(
+            pred_t1, pred_t2 = model.module.inst_seg_net(
                 {'features': inputs_t['features'],
                  'one_hot_vectors': inputs_t['one_hot_vectors']},
                 constant=cons, adaptation=True)
@@ -173,12 +173,12 @@ def main():
             optimizer_cls.zero_grad()
 
             # Local Alignment
-            feat_node_s = model.inst_seg_net({'features': inputs['features'],
+            feat_node_s = model.module.inst_seg_net({'features': inputs['features'],
                                               'one_hot_vectors': inputs[
                                                   'one_hot_vectors']},
                                              node_adaptation_s=True)
 
-            feat_node_t = model.inst_seg_net({'features': inputs_t['features'],
+            feat_node_t = model.module.inst_seg_net({'features': inputs_t['features'],
                                               'one_hot_vectors': inputs_t[
                                                   'one_hot_vectors']},
                                              node_adaptation_t=True)
@@ -284,17 +284,17 @@ def main():
     model = model.to(configs.device)
     criterion = configs.train.criterion().to(configs.device)
     #params
-    gen_params = [{'params':v} for k,v in model.g.named_parameters()
+    gen_params = [{'params':v} for k,v in model.module.inst_seg_net.g.named_parameters()
                   if 'pred_offset' not in k]
 
-    cls_params = [{'params':model.inst_seg_net.c1.parameters()},
-                  {'params':model.inst_seg_net.c2.parameters()},
-                  {'params':model.center_reg_net.parameters()},
-                  {'params':model.box_est_net.parameters()}]
+    cls_params = [{'params':model.module.inst_seg_net.c1.parameters()},
+                  {'params':model.module.inst_seg_net.c2.parameters()},
+                  {'params':model.module.center_reg_net.parameters()},
+                  {'params':model.module.box_est_net.parameters()}]
 
-    dis_params = [{'params':model.inst_seg_net.g.parameters()},
-                  {'params':model.inst_seg_net.attention_s.parameters()},
-                  {'params':model.inst_seg_net.attention_t.parameters()}]
+    dis_params = [{'params':model.module.inst_seg_net.g.parameters()},
+                  {'params':model.module.inst_seg_net.attention_s.parameters()},
+                  {'params':model.module.inst_seg_net.attention_t.parameters()}]
 
     optimizer_g = configs.train.optimizer_g(gen_params)
     optimizer_cls = configs.train.optimizer_cls(cls_params)
