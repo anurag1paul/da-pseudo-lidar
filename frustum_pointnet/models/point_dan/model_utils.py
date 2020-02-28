@@ -84,7 +84,7 @@ class transform_net(nn.Module):
 
 
 class adapt_layer_off(nn.Module):
-    def __init__(self, num_node=64, offset_dim=3, trans_dim_in=64,
+    def __init__(self, num_node=64, offset_dim=4, trans_dim_in=64,
                  trans_dim_out=64, fc_dim=64):
         super(adapt_layer_off, self).__init__()
         self.num_node = num_node

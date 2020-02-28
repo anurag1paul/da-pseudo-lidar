@@ -48,9 +48,9 @@ def grad_reverse(x, lambd=1.0):
 class PointnetG(nn.Module):
     def __init__(self):
         super(PointnetG, self).__init__()
-        self.trans_net1 = transform_net(3, 3)
+        self.trans_net1 = transform_net(4, 4)
         self.trans_net2 = transform_net(64, 64)
-        self.conv1 = conv_2d(3, 64, 1)
+        self.conv1 = conv_2d(4, 64, 1)
         self.conv2 = conv_2d(64, 64, 1)
         # SA Node Module
         self.conv3 = adapt_layer_off()  # (64->128)
@@ -63,21 +63,25 @@ class PointnetG(nn.Module):
 
         transform = self.trans_net1(x)
         x = x.transpose(2, 1)
-
         x = x.squeeze(-1)
         x = torch.bmm(x, transform)
+        
         x = x.unsqueeze(3)
         x = x.transpose(2, 1)
         x = self.conv1(x)
         x = self.conv2(x)
+        
         transform = self.trans_net2(x)
+        
         x = x.transpose(2, 1)
         x = x.squeeze(-1)
         x = torch.bmm(x, transform)
         point_feat = x
+        print("point", point_feat.shape)
 
         x = x.unsqueeze(3)
         x = x.transpose(2, 1)
+        print(x.shape)
         x, node_feat, node_off = self.conv3(x, x_loc)
         # x = [B, dim, num_node, 1]/[64, 64, 1024, 1]; x_loc = [B, xyz, num_node] / [64, 3, 1024]
 
@@ -89,6 +93,7 @@ class PointnetG(nn.Module):
         x = self.bn1(x)
 
         cloud_feat = x
+        print("cloud", cloud_feat.shape)
 
         if node:
             return cloud_feat, point_feat, node_feat, node_off
@@ -134,7 +139,8 @@ class InstanceSegmentationPointDAN(nn.Module):
             [1, 1, num_points])
 
         assert one_hot_vectors.dim() == 3  # [B, C, N]
-
+        
+        features = features.unsqueeze(-1)
         cloud_feat, point_feat, feat_ori, node_idx = self.g(features, node=True)
         batch_size = feat_ori.size(0)
 
