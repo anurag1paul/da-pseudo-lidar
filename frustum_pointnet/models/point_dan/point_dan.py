@@ -30,18 +30,18 @@ class CALayer(nn.Module):
 
 # Grad Reversal
 class GradReverse(torch.autograd.Function):
-    def __init__(self, lambd):
-        self.lambd = lambd
-
-    def forward(self, x):
+    
+    @staticmethod
+    def forward(ctx, x):
         return x.view_as(x)
-
-    def backward(self, grad_output):
-        return grad_output * -self.lambd
+    
+    @staticmethod
+    def backward(ctx, grad_output):
+        return grad_output * -1.0
 
 
 def grad_reverse(x, lambd=1.0):
-    return GradReverse(lambd)(x)
+    return GradReverse.apply(x)
 
 
 # Generator
@@ -76,21 +76,22 @@ class PointnetG(nn.Module):
         x = torch.bmm(x, transform)
         
         x = x.transpose(2, 1)
-        x, _ = self.point_features(x, x[:, :3, :])
+        x  = self.point_features(x)
         x = x.unsqueeze(-1)
         transform = self.trans_net2(x)
         
         x = x.transpose(2, 1)
         x = x.squeeze(-1)
         x = torch.bmm(x, transform)
-        point_feat = x
 
         x = x.unsqueeze(3)
         x = x.transpose(2, 1)
         x, node_feat, node_off = self.conv3(x, x_loc)
         
         x = x.squeeze(-1)
-        x, _ = self.cloud_features(x, node_feat)
+        point_feat = x
+
+        x = self.cloud_features(x)
         x, _ = torch.max(x, dim=-1, keepdim=True)
 
         cloud_feat = x
@@ -113,7 +114,7 @@ class InstanceSegmentationPointDAN(nn.Module):
         self.attention_s = CALayer(64 * 64)
         self.attention_t = CALayer(64 * 64)
 
-        channels_point = 64
+        channels_point = 128
         channels_cloud = 1024
 
         layers, _ = create_mlp_components(
@@ -124,7 +125,7 @@ class InstanceSegmentationPointDAN(nn.Module):
         self.c1 = nn.Sequential(*layers)
 
         layers, _ = create_mlp_components(
-            in_channels=(channels_point + channels_cloud + self.num_classes),
+            in_channels=( channels_point + channels_cloud + self.num_classes),
             out_channels=[512, 256, 128, 128, 0.5, 2],
             classifier=True, dim=2, width_multiplier=1
         )
@@ -163,10 +164,7 @@ class InstanceSegmentationPointDAN(nn.Module):
         if adaptation:
             cloud_feat = grad_reverse(cloud_feat, constant)
 
-        print(point_feat.shape, cloud_feat.shape)
-        cloud_feat = cloud_feat.repeat([1, 1, num_points])
-        print(point_feat.shape, cloud_feat.shape)
-        
+        cloud_feat = cloud_feat.repeat([1, 1, num_points]) 
         cls_input = torch.cat([one_hot_vectors, point_feat, cloud_feat], dim=1)
 
         y1 = self.c1(cls_input)
