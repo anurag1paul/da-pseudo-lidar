@@ -77,6 +77,11 @@ class disparityregression(nn.Module):
             np.reshape(np.array(range(maxdisp)), [1, maxdisp, 1, 1])).cuda()
 
     def forward(self, x):
+
+        # print('disparityregression - disp shape:',self.disp.shape )
+        # print('disparityregression - x shape:',x.shape )
+
+
         disp = self.disp.repeat(x.size()[0], 1, x.size()[2], x.size()[3])
         out = torch.sum(x.float() * disp.float(), 1)
         return out

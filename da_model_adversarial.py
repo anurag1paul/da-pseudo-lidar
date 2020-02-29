@@ -1,14 +1,3 @@
-########################################################
-# NOTE : NOT ACTUALLY MMD, IT USES WDGRL METHOD
-########################################################
-
-
-
-
-
-
-
-
 from __future__ import print_function
 
 import argparse
@@ -52,25 +41,30 @@ parser.add_argument('--loadmodel', default=None,
                     help='load model')
 parser.add_argument('--loadcritic', default=None,
                     help='load critic model')
-parser.add_argument('--savemodel', default='./psmnet/trained_da_wdgrl/',
+parser.add_argument('--savemodel', default='./psmnet/trained_da_adv/',
                     help='save model')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
-parser.add_argument('--lr', type=float, default=0.001, metavar='S',
+parser.add_argument('--lr', type=float, default=0.0002, metavar='S',
                     help='learning rate(default: 0.001)')
-parser.add_argument('--lr_scale', type=int, default=100, metavar='S',
+parser.add_argument('--lr_dis', type=float, default=0.0001, metavar='S',
+                    help='learning rate(default: 0.001)')
+parser.add_argument('--lr_scale', type=int, default=7, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--split_file', default='Kitti/object/train.txt',
                     help='save model')
 parser.add_argument('--btrain', type=int, default=4)
-parser.add_argument('--num_workers', type=int, default=4)
+parser.add_argument('--num_workers', type=int, default=8)
 parser.add_argument('--start_epoch', type=int, default=1)
 
-parser.add_argument('--k-critic', type=int, default=5)
-parser.add_argument('--wd-clf', type=float, default=1)
-parser.add_argument('--gamma', type=float, default=10)
+parser.add_argument('--k-critic', type=int, default=1)
+parser.add_argument('--iter_size', type=int, default=4)
+
+parser.add_argument("--lambda_adv_target", type=float, default=0.001,
+                    help="lambda_adv for adversarial training.")
+
 
 # --loadmodel psmnet/trained_da_wdgrl/finetune_4.tar --loadcritic psmnet/trained_da_wdgrl/finetune_critic4.tar 
 
@@ -132,30 +126,14 @@ class Flatten(torch.nn.Module):
         return x.view(batch_size, -1)
 
 
-critic = nn.Sequential(
 
-        nn.MaxPool3d((2, 2, 2), stride=(2, 2, 2)),
-        
-        nn.Conv3d(32, 32, kernel_size=3, padding=1,stride=1, bias=False),
-        nn.BatchNorm3d(32),
-        nn.ReLU(inplace=True),
-
-        nn.MaxPool3d((2, 2, 2), stride=(2, 2, 2)),
-
-        nn.Conv3d(32, 1, kernel_size=3, padding=1,stride=1, bias=False),
-        nn.BatchNorm3d(1),
-        nn.ReLU(inplace=True),
-
-        Flatten(),
-
-        nn.Linear( 12*16*32 , 256),
-        nn.ReLU(),
-        nn.Linear(256, 64),
-        nn.ReLU(),
-        nn.Linear(64, 1)
-    )
+model = None
+critic = None
 
 
+# labels for adversarial training
+source_label = 0
+target_label = 1
 
 if args.model == 'stackhourglass':
     model = stackhourglass(args.maxdisp)
@@ -163,8 +141,18 @@ elif args.model == 'basic':
     model = basic(args.maxdisp)
 elif args.model == 'basic_mmd':
     model = basic_mmd(args.maxdisp)
+elif args.model == 'basic_adv':
+
+    print('\n\nUsing basic adversarial model\n\n')
+
+    model = basic_adv(args.maxdisp)
+    critic = fcdiscriminator(args.maxdisp)
 else:
     print('no model')
+
+
+critic_criterion = torch.nn.MSELoss().cuda()
+
 
 if args.cuda:
     model = nn.DataParallel(model)
@@ -187,159 +175,138 @@ if args.loadmodel is not None:
 print('Number of model parameters: {}'.format(
     sum([p.data.nelement() for p in model.parameters()])))
 
-optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.999))
-critic_optim = torch.optim.Adam(critic.parameters(), lr=args.lr,  betas=(0.9, 0.999))
+optimizer = optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.99))
+optimizer_critic = torch.optim.Adam(critic.parameters(), lr=args.lr_dis,  betas=(0.9, 0.99))
 
 
 def set_requires_grad(model, requires_grad=True):
     for param in model.parameters():
         param.requires_grad = requires_grad
 
-def gradient_penalty_lin(critic, h_s, h_t):
-    # based on: https://github.com/caogang/wgan-gp/blob/master/gan_cifar10.py#L116
-    # print(h_s.size())
-    alpha = torch.rand(h_s.size(0), 1, 1, 1, 1)
-    if args.cuda:
-        alpha = alpha.cuda()
-
-    differences = h_t - h_s
-    interpolates = h_s + (alpha * differences)
-    interpolates = torch.stack([interpolates, h_s, h_t]).requires_grad_()
-
-    preds = critic(interpolates)
-    gradients = grad(preds, interpolates,
-                     grad_outputs=torch.ones_like(preds),
-                     retain_graph=True, create_graph=True)[0]
-    gradient_norm = gradients.norm(2, dim=1)
-    gradient_penalty = ((gradient_norm - 1)**2).mean()
-    return gradient_penalty
 
 
-
-def gradient_penalty(critic, h_s, h_t):
-    # print "h_s: ", h_s.size(), h_t.size()
-    
-    use_cuda = args.cuda
-    BATCH_SIZE = h_s.size(0)
-
-    alpha = torch.rand(BATCH_SIZE, 1)
-    alpha = alpha.expand(BATCH_SIZE, h_s.nelement()//BATCH_SIZE).contiguous().view(BATCH_SIZE, 32, 48, 64, 128)
-    alpha = alpha.cuda() if use_cuda else alpha
-
-    interpolates = alpha * h_s + ((1 - alpha) * h_t)
-
-    if use_cuda:
-        interpolates = interpolates.cuda()
-    interpolates = autograd.Variable(interpolates, requires_grad=True)
-
-    disc_interpolates = critic(interpolates)
-
-    gradients = autograd.grad(outputs=disc_interpolates, inputs=interpolates,
-                              grad_outputs=torch.ones(disc_interpolates.size()).cuda() if use_cuda else torch.ones(
-                                  disc_interpolates.size()),
-                              create_graph=True, retain_graph=True, only_inputs=True)[0]
-    gradients = gradients.view(gradients.size(0), -1)
-
-    gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() #* LAMBDA
-    return gradient_penalty
-
-
-
-
-
-def train(imgL_s, imgR_s, disp_L_s, imgL_t, imgR_t ):
+def train( source_data, target_data ):
 
     model.train()
+    critic.train()
 
-    if args.cuda:
-        imgL_s, imgR_s, disp_L_s = imgL_s.cuda(), imgR_s.cuda(), disp_L_s.cuda()
-        imgL_t, imgR_t = imgL_t.cuda(), imgR_t.cuda()
-
-    # ---------
-    mask = (disp_L_s > 0)
-    mask.detach_()
-    # ----
 
     # print( [x.shape for x in [imgL_s, imgR_s, disp_L_s, imgL_t, imgR_t] ] )
 
 
     total_loss = 0
-    avg_gp = 0
+    model_loss = 0
+    critic_loss = 0
+    target_adv_loss = 0
 
-
-    # Train critic
-    set_requires_grad(model, requires_grad=False)
-    set_requires_grad(critic, requires_grad=True)
-
-    with torch.no_grad():
-        _, h_s = model(imgL_s, imgR_s)
-        _, h_t = model(imgL_t, imgR_t)
-
-
-    for _ in range(args.k_critic):
-        gp = gradient_penalty(critic, h_s, h_t)
-
-        # TODO : gradient penalty expects flattened outputs. Will it work with conv features?
-
-        critic_s = critic(h_s)
-        critic_t = critic(h_t)
-        wasserstein_distance = critic_s.mean() - critic_t.mean()
-
-        critic_cost = -wasserstein_distance + args.gamma*gp
-
-        critic_optim.zero_grad()
-        critic_cost.backward()
-        critic_optim.step()
-
-        total_loss += critic_cost.item()
-        avg_gp +=  (args.gamma*gp).item()
-
-    critic_loss = total_loss /  args.k_critic
-    avg_gp = avg_gp /  args.k_critic
-
-
-
-
-    # Train model
-    set_requires_grad(model, requires_grad=True)
-    set_requires_grad(critic, requires_grad=False)
-    
-    output_s, source_features = model(imgL_s, imgR_s)
-    _, target_features = model(imgL_t, imgR_t)
-
-    output_s = torch.squeeze(output_s, 1)
-    clf_loss = F.smooth_l1_loss(output_s[mask], disp_L_s[mask], size_average=True)
-
-
-    wasserstein_distance = critic(source_features).mean() - critic(target_features).mean()
-
-    loss = clf_loss + args.wd_clf * wasserstein_distance
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
-
-    model_loss = loss.item()
-
-
-    return model_loss, critic_loss, avg_gp
-
-
-
-    """
+    optimizer_critic.zero_grad()
     optimizer.zero_grad()
 
-    if args.model == 'basic':
-        output_s, feat_mmd1_s = model(imgL_s, imgR_s)
-        _, feat_mmd1_t = model(imgL_t, imgR_t)
+
+    # accumulate gradients over iter_size number of iterations
+    for sub_i in range(args.iter_size):
+
+
+        # get data
+        imgL_s, imgR_s, disp_L_s = source_data[sub_i]
+        imgL_t, imgR_t = target_data[sub_i]
+
+        # ---------
+        mask = (disp_L_s > 0)
+        mask.detach_()
+        # ----
+
+
+        #######################################################
+        # train G
+        #######################################################
+
+        # don't accumulate grads in D
+        set_requires_grad(critic, requires_grad=False)
+        
+
+        # train with source
+
+        output_s, source_features = model(imgL_s, imgR_s)
         output_s = torch.squeeze(output_s, 1)
-        loss = F.smooth_l1_loss(output_s[mask], disp_L_s[mask],
-                                size_average=True)
+        clf_loss = F.smooth_l1_loss(output_s[mask], disp_L_s[mask], size_average=True)
 
-    loss.backward()
+        loss = clf_loss
+
+        # proper normalization
+        loss = loss / args.iter_size
+        loss.backward()
+        model_loss += loss.item()
+
+
+
+        # train with target
+
+        _, target_features = model(imgL_t, imgR_t)
+
+
+        D_out1 = critic(target_features)
+
+        loss_adv_target = critic_criterion(D_out1, torch.FloatTensor(D_out1.data.size()).fill_(source_label).cuda())
+
+        loss = args.lambda_adv_target * loss_adv_target
+        loss = loss / args.iter_size
+        loss.backward()
+        target_adv_loss += loss.item()
+
+
+
+
+
+
+        #######################################################
+        # train D
+        #######################################################
+
+
+        # bring back requires_grad
+        set_requires_grad(critic, requires_grad=True)
+
+
+        # train with source
+        source_features = source_features.detach()
+
+        D_out1 = critic(source_features)
+
+        loss_D1 = critic_criterion(D_out1, torch.FloatTensor(D_out1.data.size()).fill_(source_label).cuda())
+
+        loss_D1 = loss_D1 / args.iter_size / 2
+
+        loss_D1.backward()
+
+        critic_loss += loss_D1.item()
+
+
+
+        # train with target
+        target_features = target_features.detach()
+
+        D_out1 = critic(target_features)
+
+        loss_D1 = critic_criterion(D_out1, torch.FloatTensor(D_out1.data.size()).fill_(target_label).cuda())
+
+        loss_D1 = loss_D1 / args.iter_size / 2
+
+        loss_D1.backward()
+
+        critic_loss += loss_D1.item()
+
+
+    # update weights
     optimizer.step()
+    optimizer_critic.step()
 
-    return loss.item()
-    """
+
+
+    return model_loss, critic_loss, target_adv_loss
+
+
+
 
 
 def test(imgL, imgR, disp_true):
@@ -366,11 +333,12 @@ def test(imgL, imgR, disp_true):
     return 1 - (float(torch.sum(correct)) / float(len(index[0])))
 
 
-def adjust_learning_rate(optimizer, epoch):
+def adjust_learning_rate(optimizer, epoch, org_lr):
+    lr = org_lr
     if epoch <= args.lr_scale:
-        lr = args.lr
+        lr = org_lr
     else:
-        lr = args.lr / 10
+        lr = org_lr / 10
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 
@@ -386,39 +354,54 @@ def main():
 
     for epoch in range(args.start_epoch, args.epochs + 1):
         total_train_loss = 0
-        adjust_learning_rate(optimizer, epoch)
+        adjust_learning_rate(optimizer, epoch, args.lr)
+        adjust_learning_rate(optimizer_critic, epoch, args.lr_dis)
+
 
         source_loader = loop_iterable(TrainImgLoader_vkitti)
         target_loader= loop_iterable(TrainImgLoader_kitti)
 
-        epoch_num_batches = len( TrainImgLoader_vkitti )
+        epoch_num_batches = len( TrainImgLoader_vkitti ) // args.iter_size
         epoch_num_val_batches = int(len( ValImgLoader_vkitti ) // 10)
+
 
         # training
         for batch_idx in range(epoch_num_batches):
 
-            imgL_crop_s, imgR_crop_s, disp_crop_s_L = next(source_loader)
-            imgL_crop_t, imgR_crop_t, _ = next(target_loader)
+
+            source_data = []
+            target_data = []
+
+            for ind in range(args.iter_size):
+
+                imgL_s, imgR_s, disp_L_s = next(source_loader)
+                imgL_t, imgR_t, _ = next(target_loader)
+
+                if args.cuda:
+                    imgL_s, imgR_s, disp_L_s = imgL_s.cuda(), imgR_s.cuda(), disp_L_s.cuda()
+                    imgL_t, imgR_t = imgL_t.cuda(), imgR_t.cuda()
+
+
+                source_data.append( [imgL_s, imgR_s, disp_L_s] )
+                target_data.append( [imgL_t, imgR_t] )
 
 
             start_time = time.time()
 
-            model_loss, critic_loss, gp_loss = train(imgL_crop_s, imgR_crop_s, disp_crop_s_L,
-                        imgL_crop_t, imgR_crop_t
-                        )
+            model_loss, critic_loss, target_adv_loss = train( source_data, target_data )
 
 
-            if batch_idx % 5 == 0:
-                print('Iter %d model loss = %.3f , critic loss = %.3f , gp loss = %.3f, time = %.2f' % (
-                    batch_idx, model_loss, critic_loss,gp_loss, time.time() - start_time))
+            if batch_idx % 2 == 0:
+                # print('Iter %d/%d model_loss = %.3f , critic_loss = %.3f , target_adv_loss = %.3f, batchtime = %.2f' % (
+                #     batch_idx, epoch_num_batches, model_loss, critic_loss, target_adv_loss, (time.time() - start_time)//args.iter_size))
 
-                log.info('Iter %d model loss = %.3f , critic loss = %.3f , gp loss = %.3f, time = %.2f' % (
-                    batch_idx, model_loss, critic_loss,gp_loss, time.time() - start_time))
+                log.info('Iter %d/%d model_loss = %.3f , critic_loss = %.3f , target_adv_loss = %.3f, batchtime = %.2f' % (
+                    batch_idx, epoch_num_batches, model_loss, critic_loss, target_adv_loss, (time.time() - start_time)//args.iter_size))
 
             total_train_loss += model_loss + critic_loss
 
-        print('epoch %d total training loss = %.3f' % (
-        epoch, total_train_loss / epoch_num_batches))
+        # print('epoch %d total training loss = %.3f' % (
+        # epoch, total_train_loss / epoch_num_batches))
 
         log.info('epoch %d total training loss = %.3f' % (
         epoch, total_train_loss / epoch_num_batches))
@@ -426,6 +409,8 @@ def main():
 
         # validation
         total_val_loss = 0
+        val_zero_start_time = time.time()
+
         for batch_idx, (imgL, imgR, disp_L) in enumerate(ValImgLoader_vkitti):
 
             if batch_idx > epoch_num_val_batches:
@@ -433,12 +418,20 @@ def main():
             val_start_time = time.time()
             loss = test(imgL, imgR, disp_L)
             total_val_loss += loss
-        print('epoch %d total validation loss = %.3f , time = %.2f' % (
-        epoch, total_val_loss / epoch_num_val_batches, time.time() - val_start_time) 
-             )
+
+            if (batch_idx % 2 == 0 ):
+                log.info('Iter %d/%d loss = %.3f , batchtime = %.2f' % (
+                    batch_idx, epoch_num_val_batches, loss, (time.time() - val_start_time)//args.iter_size))
+
+
+
+
+        # print('epoch %d total validation loss = %.3f , time = %.2f' % (
+        # epoch, total_val_loss / epoch_num_val_batches, time.time() - val_zero_start_time) 
+        #      )
 
         log.info('epoch %d total validation loss = %.3f , time = %.2f' % (
-        epoch, total_val_loss / epoch_num_val_batches, time.time() - val_start_time) 
+        epoch, total_val_loss / epoch_num_val_batches, time.time() - val_zero_start_time) 
              )
 
         # SAVE

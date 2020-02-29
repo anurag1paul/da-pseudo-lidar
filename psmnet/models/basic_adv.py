@@ -11,6 +11,7 @@ class PSMNet(nn.Module):
         self.maxdisp = maxdisp
         self.feature_extraction = feature_extraction()
 
+
         ########
         self.dres0 = nn.Sequential(convbn_3d(64, 32, 3, 1, 1),
                                    nn.ReLU(inplace=True),
@@ -37,6 +38,9 @@ class PSMNet(nn.Module):
                                       nn.ReLU(inplace=True),
                                       nn.Conv3d(32, 1, kernel_size=3, padding=1,
                                                 stride=1, bias=False))
+
+
+
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -90,7 +94,9 @@ class PSMNet(nn.Module):
         cost = F.upsample(cost, [self.maxdisp, left.size()[2], left.size()[3]],
                           mode='trilinear')
         cost = torch.squeeze(cost, 1)
-        pred = F.softmax(cost)
-        pred = disparityregression(self.maxdisp)(pred)
+        pred_softmax = F.softmax(cost)
+        # print('>>>>>>>>>>>>>>> Model forward: pred_softmax', pred_softmax.shape)
 
-        return pred
+        pred = disparityregression(self.maxdisp)(pred_softmax)
+
+        return pred, pred_softmax
