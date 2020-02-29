@@ -17,11 +17,14 @@ from torch.autograd import Variable
 from psmnet.models import *
 from psmnet.utils import preprocess
 
+from psmnet.dataloader import VKittiLoader as VKitti
+
+
+
 # 2012 data /media/jiaren/ImageNet/data_scene_flow_2012/testing/
 
 parser = argparse.ArgumentParser(description='PSMNet')
-parser.add_argument('--KITTI', default='2015',
-                    help='KITTI version')
+
 parser.add_argument('--datapath', default='/scratch/datasets/kitti2015/testing/',
                     help='select model')
 parser.add_argument('--loadmodel', default=None,
@@ -44,13 +47,14 @@ torch.manual_seed(args.seed)
 if args.cuda:
     torch.cuda.manual_seed(args.seed)
 
-if args.KITTI == '2015':
-   from psmnet.dataloader import KITTI_submission_loader as DA
-else:
-   from psmnet.dataloader import KITTI_submission_loader2012 as DA
 
 
-test_left_img, test_right_img = DA.dataloader(args.datapath)
+test_left_img, test_right_img, disp_v = VKitti.dataloader(
+    args.datapath+'/virtual_kitti/', "val")
+
+
+model = None
+critic = None
 
 if args.model == 'stackhourglass':
     model = stackhourglass(args.maxdisp)
@@ -66,6 +70,7 @@ elif args.model == 'basic_adv':
     # critic = fcdiscriminator(args.maxdisp)
 else:
     print('no model')
+
 
 
 model = nn.DataParallel(model)
@@ -87,7 +92,7 @@ def test(imgL,imgR):
         imgL, imgR= Variable(imgL), Variable(imgR)
 
         with torch.no_grad():
-            output, _ = model(imgL,imgR)
+            output,_ = model(imgL,imgR)
         output = torch.squeeze(output)
         pred_disp = output.data.cpu().numpy()
 
@@ -115,9 +120,11 @@ def main():
        imgL = np.reshape(imgL,[1,3,imgL.shape[1],imgL.shape[2]])
        imgR = np.reshape(imgR,[1,3,imgR.shape[1],imgR.shape[2]])
 
-       # pad to (384, 1248)
-       top_pad = 384-imgL.shape[2]
-       left_pad = 1248-imgL.shape[3]
+       # pad to (352, 1200)
+       
+
+       top_pad = 0# 352-imgL.shape[2]
+       left_pad = 0# 1200-imgL.shape[3]
        imgL = np.lib.pad(imgL,((0,0),(0,0),(top_pad,0),(0,left_pad)),mode='constant',constant_values=0)
        imgR = np.lib.pad(imgR,((0,0),(0,0),(top_pad,0),(0,left_pad)),mode='constant',constant_values=0)
 
@@ -125,8 +132,8 @@ def main():
        pred_disp = test(imgL,imgR)
        print('time = %.2f' %(time.time() - start_time))
 
-       top_pad   = 384-imgL_o.shape[0]
-       left_pad  = 1248-imgL_o.shape[1]
+       top_pad   =  0# 352-imgL_o.shape[0]
+       left_pad  =  0# 1200-imgL_o.shape[1]
        img = pred_disp[top_pad:,:-left_pad]
 
        print('min:{}, max:{}'.format(np.min(img),np.max(img))  )

@@ -4,6 +4,12 @@ import argparse
 import os
 import time
 
+
+import skimage
+import skimage.io
+import skimage.transform
+
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -65,32 +71,43 @@ parser.add_argument('--iter_size', type=int, default=4)
 parser.add_argument("--lambda_adv_target", type=float, default=0.001,
                     help="lambda_adv for adversarial training.")
 
-
-# --loadmodel psmnet/trained_da_wdgrl/finetune_4.tar --loadcritic psmnet/trained_da_wdgrl/finetune_critic4.tar 
+parser.add_argument('--num_samples', type=int, default=5)
+parser.add_argument('--dummy_num_batches', type=int, default=None)
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
+
+val_sample_dir = args.savemodel+'/'+'samples'
+
+
+
+# --loadmodel psmnet/trained_da_wdgrl/finetune_4.tar --loadcritic psmnet/trained_da_wdgrl/finetune_critic4.tar 
+
 # torch.manual_seed(args.seed)
 # if args.cuda:
 #     torch.cuda.manual_seed(args.seed)
 
 if not os.path.isdir(args.savemodel):
     os.makedirs(args.savemodel)
+
+if not os.path.isdir(val_sample_dir):
+    os.makedirs(val_sample_dir)
+
 print(os.path.join(args.savemodel, 'training.log'))
 log = logger.setup_logger(os.path.join(args.savemodel, 'training.log'))
 
 all_left_img, all_right_img, all_left_disp = kitti_ls.dataloader(
-    args.datapath+'/kitti/training/', "psmnet/kitti/train.txt")
+    args.datapath+'/kitti/training', "psmnet/kitti/train.txt")
 
 val_left_img, val_right_img, val_left_disp = kitti_ls.dataloader(
-    args.datapath+'/kitti/training/', "psmnet/kitti/val.txt")
+    args.datapath+'/kitti/training', "psmnet/kitti/val.txt")
 
 
 all_left_img_v, all_right_img_v, all_left_disp_v = VKitti.dataloader(
-    args.datapath+'/virtual_kitti/', "psmnet/vkitti/train.csv")
+    args.datapath+'/virtual_kitti/', "train")
 
 val_left_img_v, val_right_img_v, val_left_disp_v = VKitti.dataloader(
-    args.datapath+'/virtual_kitti/', "psmnet/vkitti/val.csv")
+    args.datapath+'/virtual_kitti/', "val")
 
 
 half_batch_size = args.btrain // 2
@@ -309,8 +326,9 @@ def train( source_data, target_data ):
 
 
 
-def test(imgL, imgR, disp_true):
+def test(imgL, imgR, disp_true, save_image = False, save_file_path = None):
     model.eval()
+    
     if args.cuda:
         imgL, imgR = imgL.cuda(), imgR.cuda()
 
@@ -318,6 +336,12 @@ def test(imgL, imgR, disp_true):
         output3,_ = model(imgL, imgR)
 
     pred_disp = output3.data.cpu()
+
+    if save_image:
+        img = pred_disp[0].numpy()
+        print(img.shape)
+        skimage.io.imsave(save_file_path,(img*256).astype('uint16'))
+
 
     # computing 3-px error#
     true_disp = disp_true
@@ -362,7 +386,11 @@ def main():
         target_loader= loop_iterable(TrainImgLoader_kitti)
 
         epoch_num_batches = len( TrainImgLoader_vkitti ) // args.iter_size
-        epoch_num_val_batches = int(len( ValImgLoader_vkitti ) // 5)
+        epoch_num_val_batches = int(len( ValImgLoader_vkitti ) // 10)
+
+        if args.dummy_num_batches is not None:
+            epoch_num_batches = args.dummy_num_batches
+            epoch_num_val_batches = args.dummy_num_batches
 
 
         # training
@@ -395,7 +423,7 @@ def main():
                 # print('Iter %d/%d model_loss = %.4f , critic_loss = %.4f , target_adv_loss = %.4f, batchtime = %.2f' % (
                 #     batch_idx, epoch_num_batches, model_loss, critic_loss, target_adv_loss, (time.time() - start_time)/args.iter_size))
 
-                log.info('Iter %d/%d model_loss = %.4f , critic_loss = %.4f , target_adv_loss = %.4f, batchtime = %.2f' % (
+                log.info('Epoch %d, Iter %d/%d model_loss = %.4f , critic_loss = %.4f , target_adv_loss = %.4f, batchtime = %.2f' % (epoch,
                     batch_idx, epoch_num_batches, model_loss, critic_loss, target_adv_loss, (time.time() - start_time)/args.iter_size))
 
             total_train_loss += model_loss + critic_loss
@@ -407,32 +435,88 @@ def main():
         epoch, total_train_loss / epoch_num_batches))
 
 
+
+        # save some output sample images
+
+        # vkitti samples
+        for batch_idx, (imgL, imgR, disp_L) in enumerate(ValImgLoader_vkitti):
+
+            if batch_idx >= args.num_samples:
+                break
+            save_file_path = val_sample_dir+'/vkitti_{}_{}.jpg'.format(epoch,batch_idx)
+            _ = test(imgL, imgR, disp_L, save_image = True,
+                                         save_file_path=save_file_path)
+
+        # kitti samples - ON TRAIN SET
+        for batch_idx, (imgL, imgR, disp_L) in enumerate(TrainImgLoader_kitti):
+
+            if batch_idx >= args.num_samples:
+                break
+            save_file_path = val_sample_dir+'/kitti_{}_{}.jpg'.format(epoch,batch_idx)
+            _ = test(imgL, imgR, disp_L, save_image = True,
+                                         save_file_path=save_file_path)
+
+
+
+
+
+
         # validation
+
+        # vkitti val
         total_val_loss = 0
         val_zero_start_time = time.time()
 
         for batch_idx, (imgL, imgR, disp_L) in enumerate(ValImgLoader_vkitti):
 
-            if batch_idx > epoch_num_val_batches:
+            if batch_idx >= epoch_num_val_batches:
                 break
             val_start_time = time.time()
             loss = test(imgL, imgR, disp_L)
             total_val_loss += loss
 
-            if (batch_idx % 2 == 0 ):
-                log.info('Val_iter %d/%d loss = %.4f , batchtime = %.2f' % (
+            if (batch_idx % 50 == 0 ):
+                log.info('VKITTI Val_iter %d/%d loss = %.4f , batchtime = %.2f' % (
                     batch_idx, epoch_num_val_batches, loss, time.time() - val_start_time))
 
 
 
-
-        # print('epoch %d total validation loss = %.4f , time = %.2f' % (
-        # epoch, total_val_loss / epoch_num_val_batches, time.time() - val_zero_start_time) 
-        #      )
-
-        log.info('epoch %d total validation loss = %.4f , time = %.2f' % (
+        log.info('epoch %d VKITTI total validation loss = %.4f , time = %.2f' % (
         epoch, total_val_loss / epoch_num_val_batches, time.time() - val_zero_start_time) 
              )
+
+
+
+
+        # KITTI evaluation on TRAIN SET
+        total_val_loss = 0
+        val_zero_start_time = time.time()
+
+        for batch_idx, (imgL, imgR, disp_L) in enumerate(TrainImgLoader_kitti):
+
+            if batch_idx >= epoch_num_val_batches:
+                break
+            val_start_time = time.time()
+            loss = test(imgL, imgR, disp_L)
+            total_val_loss += loss
+
+            if (batch_idx % 50 == 0 ):
+                log.info('KITTI Val_iter %d/%d loss = %.4f , batchtime = %.2f' % (
+                    batch_idx, epoch_num_val_batches, loss, time.time() - val_start_time))
+
+
+
+        log.info('epoch %d KITTI total train set loss = %.4f , time = %.2f' % (
+        epoch, total_val_loss / epoch_num_val_batches, time.time() - val_zero_start_time) 
+             )
+
+
+
+
+
+
+
+
 
         # SAVE
         if not os.path.isdir(args.savemodel):

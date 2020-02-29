@@ -93,10 +93,11 @@ val_left_img, val_right_img, val_left_disp = kitti_ls.dataloader(
 
 
 all_left_img_v, all_right_img_v, all_left_disp_v = VKitti.dataloader(
-    args.datapath+'/virtual_kitti/', "psmnet/vkitti/train.csv")
+    args.datapath+'/virtual_kitti/', "train")
 
 val_left_img_v, val_right_img_v, val_left_disp_v = VKitti.dataloader(
-    args.datapath+'/virtual_kitti/', "psmnet/vkitti/val.csv")
+    args.datapath+'/virtual_kitti/', "val")
+
 
 
 half_batch_size = args.btrain // 2

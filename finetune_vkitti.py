@@ -54,10 +54,10 @@ print(os.path.join(args.savemodel, 'training.log'))
 log = logger.setup_logger(os.path.join(args.savemodel, 'training.log'))
 
 all_left_img, all_right_img, all_left_disp = VKitti.dataloader(
-    args.datapath, "psmnet/vkitti/train.csv")
+    args.datapath, "train")
 
 val_left_img, val_right_img, val_left_disp = VKitti.dataloader(
-    args.datapath, "psmnet/vkitti/val.csv")
+    args.datapath, "val")
 
 TrainImgLoader = torch.utils.data.DataLoader(
     VKitti.ImageLoader(all_left_img, all_right_img, all_left_disp, True),
