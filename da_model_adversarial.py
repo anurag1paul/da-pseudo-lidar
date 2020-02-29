@@ -104,7 +104,7 @@ TrainImgLoader_vkitti = torch.utils.data.DataLoader(
 
 ValImgLoader_vkitti = torch.utils.data.DataLoader(
     VKitti.ImageLoader(val_left_img_v, val_right_img_v, val_left_disp_v, False),
-    batch_size=half_batch_size*2, shuffle=False, num_workers=args.num_workers, drop_last=False)
+    batch_size=half_batch_size, shuffle=False, num_workers=args.num_workers, drop_last=False)
 
 
 
@@ -115,7 +115,7 @@ TrainImgLoader_kitti = torch.utils.data.DataLoader(
 
 ValImgLoader_kitti = torch.utils.data.DataLoader(
     kitti_loader.myImageFloder(val_left_img, val_right_img, val_left_disp, False),
-    batch_size=half_batch_size*2, shuffle=False, num_workers=args.num_workers, drop_last=False)
+    batch_size=half_batch_size, shuffle=False, num_workers=args.num_workers, drop_last=False)
 
 
 
@@ -253,7 +253,7 @@ def train( source_data, target_data ):
         loss = loss / args.iter_size
         loss.backward()
         target_adv_loss += loss.item()
-
+        # print('loss_adv_target:',loss_adv_target, target_adv_loss)
 
 
 
@@ -362,7 +362,7 @@ def main():
         target_loader= loop_iterable(TrainImgLoader_kitti)
 
         epoch_num_batches = len( TrainImgLoader_vkitti ) // args.iter_size
-        epoch_num_val_batches = int(len( ValImgLoader_vkitti ) // 10)
+        epoch_num_val_batches = int(len( ValImgLoader_vkitti ) // 5)
 
 
         # training
@@ -392,18 +392,18 @@ def main():
 
 
             if batch_idx % 2 == 0:
-                # print('Iter %d/%d model_loss = %.3f , critic_loss = %.3f , target_adv_loss = %.3f, batchtime = %.2f' % (
-                #     batch_idx, epoch_num_batches, model_loss, critic_loss, target_adv_loss, (time.time() - start_time)//args.iter_size))
+                # print('Iter %d/%d model_loss = %.4f , critic_loss = %.4f , target_adv_loss = %.4f, batchtime = %.2f' % (
+                #     batch_idx, epoch_num_batches, model_loss, critic_loss, target_adv_loss, (time.time() - start_time)/args.iter_size))
 
-                log.info('Iter %d/%d model_loss = %.3f , critic_loss = %.3f , target_adv_loss = %.3f, batchtime = %.2f' % (
-                    batch_idx, epoch_num_batches, model_loss, critic_loss, target_adv_loss, (time.time() - start_time)//args.iter_size))
+                log.info('Iter %d/%d model_loss = %.4f , critic_loss = %.4f , target_adv_loss = %.4f, batchtime = %.2f' % (
+                    batch_idx, epoch_num_batches, model_loss, critic_loss, target_adv_loss, (time.time() - start_time)/args.iter_size))
 
             total_train_loss += model_loss + critic_loss
 
-        # print('epoch %d total training loss = %.3f' % (
+        # print('epoch %d total training loss = %.4f' % (
         # epoch, total_train_loss / epoch_num_batches))
 
-        log.info('epoch %d total training loss = %.3f' % (
+        log.info('epoch %d total training loss = %.4f' % (
         epoch, total_train_loss / epoch_num_batches))
 
 
@@ -420,17 +420,17 @@ def main():
             total_val_loss += loss
 
             if (batch_idx % 2 == 0 ):
-                log.info('Iter %d/%d loss = %.3f , batchtime = %.2f' % (
-                    batch_idx, epoch_num_val_batches, loss, (time.time() - val_start_time)//args.iter_size))
+                log.info('Val_iter %d/%d loss = %.4f , batchtime = %.2f' % (
+                    batch_idx, epoch_num_val_batches, loss, time.time() - val_start_time))
 
 
 
 
-        # print('epoch %d total validation loss = %.3f , time = %.2f' % (
+        # print('epoch %d total validation loss = %.4f , time = %.2f' % (
         # epoch, total_val_loss / epoch_num_val_batches, time.time() - val_zero_start_time) 
         #      )
 
-        log.info('epoch %d total validation loss = %.3f , time = %.2f' % (
+        log.info('epoch %d total validation loss = %.4f , time = %.2f' % (
         epoch, total_val_loss / epoch_num_val_batches, time.time() - val_zero_start_time) 
              )
 
