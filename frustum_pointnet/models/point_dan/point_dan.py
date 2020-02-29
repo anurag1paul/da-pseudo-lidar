@@ -76,7 +76,7 @@ class PointnetG(nn.Module):
         x = torch.bmm(x, transform)
         
         x = x.transpose(2, 1)
-        x  = self.point_features(x)
+        x = self.point_features(x)
         x = x.unsqueeze(-1)
         transform = self.trans_net2(x)
         
