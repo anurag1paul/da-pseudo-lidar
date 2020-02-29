@@ -152,6 +152,8 @@ class PSMNet(nn.Module):
             pred2 = F.softmax(cost2, dim=1)
             pred2 = disparityregression(self.maxdisp)(pred2)
 
+        # print('Cost3 shape:', cost3.shape, '\t input img shape:',left.shape)
+
         cost3 = F.upsample(cost3, [self.maxdisp, left.size()[2], left.size()[3]], mode='trilinear')
         cost3 = torch.squeeze(cost3, 1)
         pred3 = F.softmax(cost3, dim=1)

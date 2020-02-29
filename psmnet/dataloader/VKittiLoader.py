@@ -44,10 +44,10 @@ def default_loader(path):
 
 
 def disparity_loader(path):
-    depth = np.array(Image.open(path)).astype(np.float64)
+    depth = np.array(Image.open(path)).astype(np.float64) / 100.0 # convert to meters
     baseline = 0.54
 
-    disparity = (baseline * calib[0][0]) / (depth + 1e-6)
+    disparity = (1.5 * baseline * calib[0][0]) / (depth + 1e-6) # enhance disparity for better training
     return disparity
 
 
@@ -71,22 +71,22 @@ class ImageLoader(data.Dataset):
         right_img = self.loader(right)
         dataL = self.dploader(disp_L)
 
-        if self.training:
-            w, h = left_img.size
-            th, tw = 256, 512
+        # if self.training:
+        w, h = left_img.size
+        th, tw = 256, 512
 
-            x1 = random.randint(0, w - tw)
-            y1 = random.randint(0, h - th)
+        x1 = random.randint(0, w - tw)
+        y1 = random.randint(0, h - th)
 
-            left_img = left_img.crop((x1, y1, x1 + tw, y1 + th))
-            right_img = right_img.crop((x1, y1, x1 + tw, y1 + th))
+        left_img = left_img.crop((x1, y1, x1 + tw, y1 + th))
+        right_img = right_img.crop((x1, y1, x1 + tw, y1 + th))
 
-            dataL = dataL[y1:y1 + th, x1:x1 + tw]
+        dataL = dataL[y1:y1 + th, x1:x1 + tw]
 
-            processed = preprocess.get_transform(augment=False)
-            left_img = processed(left_img)
-            right_img = processed(right_img)
-
+        processed = preprocess.get_transform(augment=False)
+        left_img = processed(left_img)
+        right_img = processed(right_img)
+        """
         else:
             w, h = left_img.size
 
@@ -99,6 +99,7 @@ class ImageLoader(data.Dataset):
             processed = preprocess.get_transform(augment=False)
             left_img = processed(left_img)
             right_img = processed(right_img)
+        """
 
         dataL = torch.from_numpy(dataL).float()
         return left_img, right_img, dataL

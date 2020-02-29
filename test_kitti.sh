@@ -1,0 +1,1 @@
+python3 submission_kitti.py --maxdisp 192 --model stackhourglass --KITTI 2015 --datapath /data/datasets/kitti/testing/  --loadmodel psmnet/pretrained/pretrained_model_KITTI2015.tar --save_figure --save_path results/kitti_pretrained

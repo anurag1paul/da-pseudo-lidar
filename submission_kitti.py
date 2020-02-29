@@ -45,9 +45,9 @@ if args.cuda:
     torch.cuda.manual_seed(args.seed)
 
 if args.KITTI == '2015':
-   from dataloader import KITTI_submission_loader as DA
+   from psmnet.dataloader import KITTI_submission_loader as DA
 else:
-   from dataloader import KITTI_submission_loader2012 as DA
+   from psmnet.dataloader import KITTI_submission_loader2012 as DA
 
 
 test_left_img, test_right_img = DA.dataloader(args.datapath)
@@ -95,6 +95,12 @@ def main():
 
        imgL_o = (skimage.io.imread(test_left_img[inx]).astype('float32'))
        imgR_o = (skimage.io.imread(test_right_img[inx]).astype('float32'))
+
+       skimage.io.imsave(args.save_path+'/l_'+test_left_img[inx].split('/')[-1], skimage.io.imread(test_left_img[inx]) )
+
+       skimage.io.imsave(args.save_path+'/r_'+test_left_img[inx].split('/')[-1], skimage.io.imread(test_right_img[inx] ))
+
+
        imgL = processed(imgL_o).numpy()
        imgR = processed(imgR_o).numpy()
        imgL = np.reshape(imgL,[1,3,imgL.shape[1],imgL.shape[2]])
@@ -113,6 +119,9 @@ def main():
        top_pad   = 384-imgL_o.shape[0]
        left_pad  = 1248-imgL_o.shape[1]
        img = pred_disp[top_pad:,:-left_pad]
+
+       print('min:{}, max:{}'.format(np.min(img),np.max(img))  )
+
        print(test_left_img[inx].split('/')[-1])
        if args.save_figure:
            skimage.io.imsave(args.save_path+'/'+test_left_img[inx].split('/')[-1],(img*256).astype('uint16'))
