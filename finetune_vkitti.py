@@ -65,7 +65,7 @@ TrainImgLoader = torch.utils.data.DataLoader(
 
 ValImgLoader = torch.utils.data.DataLoader(
     VKitti.ImageLoader(val_left_img, val_right_img, val_left_disp, False),
-    batch_size=args.btrain, shuffle=False, num_workers=args.num_workers, drop_last=False)
+    batch_size=int(args.btrain / 3), shuffle=False, num_workers=args.num_workers, drop_last=False)
 
 if args.model == 'stackhourglass':
     model = stackhourglass(args.maxdisp)
