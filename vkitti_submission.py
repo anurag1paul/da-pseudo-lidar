@@ -127,7 +127,7 @@ def main():
         if args.save_figure:
             skimage.io.imsave(args.save_path + '/' + \
                 test_left_img[inx].split('/')[-1].split('.')[0] + '.png', # save as png
-                (img * 128).astype('uint16')) # divide by 1.5 here to get actual depth
+                (img * 256 / 1.5).astype('uint16')) # divide by 1.5 here to get actual depth
         else:
             np.save(
                 args.save_path + '/' + test_left_img[inx].split('/')[-1][:-4],
