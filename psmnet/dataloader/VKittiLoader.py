@@ -6,7 +6,6 @@ import torch
 import torch.utils.data as data
 from PIL import Image
 import scipy.misc as ssc
-import cv2
 
 from psmnet.dataloader import preprocess
 
@@ -23,20 +22,42 @@ def is_image_file(filename):
     return any(filename.endswith(extension) for extension in IMG_EXTENSIONS)
 
 
-def dataloader(root_dir, split_file):
+def dataloader(root_dir, split):
     """
     Function to load data for Apollo
     :param root_dir: dataset directory
     :param split_file: file names
     :return: left, right and disparity file lists
     """
-    files = pd.read_csv(split_file, header=0)
+    if split == "train":
+        scenes = ["Scene01", "Scene02", "Scene06", "Scene18"]
+    else:
+        scenes = ["Scene20"]
 
-    left_train  = list(files["left"].apply(lambda x: root_dir + x))
-    right_train = list(files["right"].apply(lambda x: root_dir + x))
-    disp_train  = list(files["depth"].apply(lambda x: root_dir + x))
+    sub_scenes = ["15-deg-left", "30-deg-left", "15-deg-right", "30-deg-right",
+                  "clone", "morning", "rain", "fog", "overcast", "sunset"]
 
-    return left_train, right_train, disp_train
+    left  = []
+    right = []
+    disp  = []
+
+    for scene in scenes:
+        dir = os.path.join(root_dir, scene)
+        for sub in sub_scenes:
+            sub_dir = os.path.join(dir, sub, "frames")
+            path, dirs, files = os.walk(os.path.join(sub_dir, "rgb", "Camera_0")).__next__()
+            num_files = len(files)
+
+            for i in range(num_files):
+                file = "{:05d}".format(i)
+                left.append(os.path.join(sub_dir, "rgb", "Camera_0",
+                                         "rgb_{}.jpg".format(file)))
+                right.append(os.path.join(sub_dir, "rgb", "Camera_1",
+                                         "rgb_{}.jpg".format(file)))
+                disp.append(os.path.join(sub_dir, "depth", "Camera_0",
+                                         "depth_{}.png".format(file)))
+
+    return left, right, disp
 
 
 def default_loader(path):
