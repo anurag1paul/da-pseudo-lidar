@@ -6,8 +6,11 @@ Date: February 2020
 from __future__ import print_function
 
 import pickle
-from vkitti.vkitti_object import *
 import argparse
+
+from collections import defaultdict
+
+from vkitti.vkitti_object import *
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(BASE_DIR)
@@ -283,6 +286,31 @@ def extract_frustum_data(path, split, output_filename, viz=False,
             raw_input()
 
 
+def get_box3d_dim_statistics(path):
+    ''' Collect and dump 3D bounding box statistics '''
+    split = "train"
+    dimension_list = defaultdict(list)
+    
+    for scene in scenes_dict[split]:
+        for sub_scene in sub_scenes:
+            dataset = vkitti_object(path, split, scene, sub_scene)
+            for data_idx in range(len(dataset)):
+                idx = "{}/{}/{}".format(scene, sub_scene, data_idx)
+                print('------------- ', idx)
+                objects = dataset.get_label_objects(data_idx)
+                for obj_idx in range(len(objects)):
+                    obj = objects[obj_idx]
+                    if obj.type=='DontCare':continue
+                    dimension_list[obj.type].append(np.array([obj.l,obj.w,obj.h]))
+            break
+        break
+    
+    for type, dims in dimension_list.items():
+        dims_data = np.array(dims)
+        print(type, dims_data.shape)
+        print(type, dims_data.mean(axis=0))
+    
+        
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--demo', action='store_true', help='Run demo.')
@@ -295,11 +323,16 @@ if __name__ == '__main__':
                         help='Generate val split frustum data with RGB detection 2D boxes')
     parser.add_argument('--car_only', action='store_true',
                         help='Only generate cars; otherwise cars, peds and cycs')
+    parser.add_argument('--stats', action='store_true',
+                        help='generate 3d stats')
     args = parser.parse_args()
 
     if args.demo:
         demo(args.path)
         exit()
+
+    if args.stats:
+        get_box3d_dim_statistics(args.path)
 
     if args.car_only:
         type_whitelist = ['Car']
