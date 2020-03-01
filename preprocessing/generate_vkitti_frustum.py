@@ -252,6 +252,7 @@ def extract_frustum_data(path, split, output_filename, viz=False,
                         pos_cnt += np.sum(label)
                         all_cnt += pc_in_box_fov.shape[0]
 
+    print("Number of boxes:{}".format(len(input_list)))
     print('Average pos ratio: %f' % (pos_cnt / float(all_cnt)))
     print('Average npoints: %f' % (float(all_cnt) / len(id_list)))
 
