@@ -99,7 +99,11 @@ class vkitti_object(object):
         depth = self.get_depth_map(idx)
         velo = project_depth_to_points(calib, depth)
         velo = np.concatenate([velo, np.ones((velo.shape[0], 1))], 1)
-        return velo
+        points = 0.2   # percentage of points to be rejected
+        points_step = int(1. / points)
+        velo_range = range(0, velo.shape[0], points_step)
+        velo_frame = velo[velo_range, :]
+        return velo_frame
 
 
 def project_depth_to_points(calib, depth, max_high=3.0):
