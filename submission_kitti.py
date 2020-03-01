@@ -16,6 +16,7 @@ from torch.autograd import Variable
 
 from psmnet.models import *
 from psmnet.utils import preprocess
+from PIL import Image
 
 # 2012 data /media/jiaren/ImageNet/data_scene_flow_2012/testing/
 
@@ -105,8 +106,8 @@ def main():
        # imgL_o = (skimage.io.imread(test_left_img[inx]).astype('float32'))
        # imgR_o = (skimage.io.imread(test_right_img[inx]).astype('float32'))
 
-       imgL_o = Image.open(test_left_img[inx]).convert('RGB')
-       imgR_o = Image.open(test_right_img[inx]).convert('RGB')
+       imgL_o = np.array(Image.open(test_left_img[inx]).convert('RGB'))
+       imgR_o = np.array(Image.open(test_right_img[inx]).convert('RGB'))
 
 
        # skimage.io.imsave(args.save_path+'/l_'+test_left_img[inx].split('/')[-1], skimage.io.imread(test_left_img[inx]) )
