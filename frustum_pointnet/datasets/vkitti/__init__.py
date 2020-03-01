@@ -1,1 +1,1 @@
-from datasets.kitti.frustum import FrustumKitti
+from datasets.vkitti.frustum import FrustumVkitti

@@ -2,8 +2,8 @@ import numpy as np
 import torch
 import torch.optim as optim
 
-from datasets.kitti import FrustumKitti
-from datasets.kitti.attributes import kitti_attributes as kitti
+from datasets.vkitti import FrustumVkitti
+from datasets.vkitti.attributes import vkitti_attributes as kitti
 from meters.kitti import MeterFrustumKitti
 from modules.frustum import FrustumPointNetLoss
 from evaluate.kitti.frustum.eval import evaluate
@@ -27,7 +27,7 @@ for i in range(configs.data.num_size_templates):
 configs.data.size_templates = torch.from_numpy(configs.data.size_templates.astype(np.float32))
 
 # dataset configs
-configs.dataset = Config(FrustumKitti)
+configs.dataset = Config(FrustumVkitti)
 configs.dataset.root = 'data/vkitti/frustum/frustum_data'
 configs.dataset.num_points = 1024
 configs.dataset.classes = configs.data.classes

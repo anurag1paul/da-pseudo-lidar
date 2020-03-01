@@ -4,30 +4,30 @@ import pickle
 import numpy as np
 from torch.utils.data import Dataset
 
-from datasets.kitti.attributes import kitti_attributes as kitti
+from datasets.vkitti.attributes import vkitti_attributes as vkitti
 from utils.container import G
 
 
-class FrustumKitti(dict):
+class FrustumVkitti(dict):
     def __init__(self, root, num_points, split=None, classes=('Car', 'Pedestrian', 'Cyclist'),
                  num_heading_angle_bins=12, class_name_to_size_template_id=None,
                  from_rgb_detection=False, random_flip=False, random_shift=False, frustum_rotate=False):
         super().__init__()
         if class_name_to_size_template_id is None:
-            class_name_to_size_template_id = {cat: cls for cls, cat in enumerate(kitti.class_names)}
+            class_name_to_size_template_id = {cat: cls for cls, cat in enumerate(vkitti.class_names)}
         if not isinstance(split, (list, tuple)):
             if split is None:
                 split = ['train', 'val']
             else:
                 split = [split]
         if 'train' in split:
-            self['train'] = _FrustumKittiDataset(
+            self['train'] = _FrustumVkittiDataset(
                 root=root, num_points=num_points, split='train', classes=classes,
                 num_heading_angle_bins=num_heading_angle_bins,
                 class_name_to_size_template_id=class_name_to_size_template_id,
                 random_flip=random_flip, random_shift=random_shift, frustum_rotate=frustum_rotate)
         if 'val' in split:
-            self['val'] = _FrustumKittiDataset(
+            self['val'] = _FrustumVkittiDataset(
                 root=root, num_points=num_points, split='val', classes=classes,
                 num_heading_angle_bins=num_heading_angle_bins,
                 class_name_to_size_template_id=class_name_to_size_template_id,
@@ -35,7 +35,7 @@ class FrustumKitti(dict):
                 from_rgb_detection=from_rgb_detection)
 
 
-class _FrustumKittiDataset(Dataset):
+class _FrustumVkittiDataset(Dataset):
     def __init__(self, root, num_points, split, classes, num_heading_angle_bins, class_name_to_size_template_id,
                  from_rgb_detection=False, random_flip=False, random_shift=False, frustum_rotate=False):
         """
@@ -120,7 +120,7 @@ class _FrustumKittiDataset(Dataset):
         center = (self.data.boxes_3d[index][0, :] + self.data.boxes_3d[index][6, :]) / 2.0
         heading_angle = self.data.heading_angles[index]
         size_template_id = self.class_name_to_size_template_id[class_name]
-        size_residual = self.data.sizes[index] - kitti.class_name_to_size_template[class_name]
+        size_residual = self.data.sizes[index] - vkitti.class_name_to_size_template[class_name]
         if self.frustum_rotate:
             center = self.rotate_points_along_y(np.expand_dims(center, 0), rotation_angle).squeeze()
             heading_angle -= rotation_angle
