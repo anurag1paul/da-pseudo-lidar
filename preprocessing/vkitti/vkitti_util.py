@@ -91,8 +91,6 @@ class Calibration(object):
         self.extrinsics = self.process_extrinsic(extrinsic_values)
         self.R0 = np.linalg.inv(self.extrinsics[:3, :3])
 
-        print(self.P)
-
         # Camera intrinsics and extrinsics
         self.c_u = self.P[0, 2]
         self.c_v = self.P[1, 2]
@@ -254,9 +252,9 @@ def project_to_image(pts_3d, P):
     """
     n = pts_3d.shape[0]
     pts_3d_extend = np.hstack((pts_3d, np.ones((n, 1))))
-    print(('pts_3d_extend shape: ', pts_3d_extend.shape))
+    # print(('pts_3d_extend shape: ', pts_3d_extend.shape))
     pts_2d = np.dot(pts_3d_extend, np.transpose(P))  # nx3
-    print(pts_2d)
+    # print(pts_2d)
     pts_2d[:, 0] /= pts_2d[:, 2]
     pts_2d[:, 1] /= pts_2d[:, 2]
     return pts_2d[:, 0:2]
@@ -288,7 +286,7 @@ def compute_box_3d(obj, P):
     corners_3d[0, :] = corners_3d[0, :] + obj.t[0]
     corners_3d[1, :] = corners_3d[1, :] + obj.t[1]
     corners_3d[2, :] = corners_3d[2, :] + obj.t[2]
-    print('corners_3d: ', corners_3d)
+
     # only draw 3d bounding box for objs in front of the camera
     if np.any(corners_3d[2, :] < 0.1):
         corners_2d = None

@@ -16,6 +16,8 @@ import vkitti.vkitti_util as utils
 
 raw_input = input  # Python 3
 
+scenes_dict = {"train": ["Scene01", "Scene02", "Scene06", "Scene18"],
+               "val": ["Scene20"]}
 sub_scenes = ["15-deg-left", "30-deg-left", "15-deg-right", "30-deg-right",
               "clone", "morning", "rain", "fog", "overcast", "sunset"]
 
@@ -27,17 +29,15 @@ class vkitti_object(object):
         """root_dir contains scene folders"""
         self.root_dir = root_dir
         self.split = split
-        if split == "train":
-            scenes = ["Scene01", "Scene02", "Scene06", "Scene18"]
-        else:
-            scenes = ["Scene20"]
 
-        assert scene in scenes
+        assert scene in scenes_dict[split]
         assert sub_scene in sub_scenes
 
         self.sub_scene_dir = os.path.join(self.root_dir, scene, sub_scene)
-        self.image_dir = os.path.join(self.sub_scene_dir, "frames", "rgb", "Camera_0")
-        self.depth_dir = os.path.join(self.sub_scene_dir, "frames", "depth", "Camera_0")
+        self.image_dir = os.path.join(self.sub_scene_dir, "frames", "rgb",
+                                      "Camera_0")
+        self.depth_dir = os.path.join(self.sub_scene_dir, "frames", "depth",
+                                      "Camera_0")
 
         self.intrinsic_file = os.path.join(self.sub_scene_dir, 'intrinsic.txt')
         self.extrinsic_file = os.path.join(self.sub_scene_dir, "extrinsic.txt")
@@ -63,7 +63,8 @@ class vkitti_object(object):
 
     def get_image(self, idx):
         assert (idx < self.num_samples)
-        img_filename = os.path.join(self.image_dir, "rgb_{:05d}.jpg".format(idx))
+        img_filename = os.path.join(self.image_dir,
+                                    "rgb_{:05d}.jpg".format(idx))
         return utils.load_image(img_filename)
 
     def get_calibration(self, idx):
@@ -85,7 +86,8 @@ class vkitti_object(object):
     def _get_label_data(self):
         bbox = pd.read_csv(self.label_file_2d, sep=" ", header=0)
         obj = pd.read_csv(self.label_file_3d, sep=" ", header=0)
-        data = pd.merge(bbox, obj, on=["frame", "cameraID", "trackID"], how="inner")
+        data = pd.merge(bbox, obj, on=["frame", "cameraID", "trackID"],
+                        how="inner")
         data = data[data["cameraID"] == 0]
 
         info = pd.read_csv(self.label_object_type, sep=" ", header=0)
@@ -133,7 +135,7 @@ def get_lidar_in_image_fov(pc_rect, calib, xmin, ymin, xmax, ymax,
     pts_2d = calib.project_ref_to_image(pc_rect)
     fov_inds = (pts_2d[:, 0] < xmax) & (pts_2d[:, 0] >= xmin) & \
                (pts_2d[:, 1] < ymax) & (pts_2d[:, 1] >= ymin)
-    # fov_inds = fov_inds & (pc_rect[:, 0] > clip_distance)
+    # fov_inds = fov_inds & (pc_rect[:, 0] < -1 * clip_distance)
     imgfov_pc_velo = pc_rect[fov_inds, :]
     if return_more:
         return imgfov_pc_velo, pts_2d, fov_inds
@@ -172,4 +174,3 @@ def show_lidar_with_boxes(pc_velo, objects, calib,
         mlab.plot3d([x1, x2], [y1, y2], [z1, z2], color=(0.5, 0.5, 0.5),
                     tube_radius=None, line_width=1, figure=fig)
     mlab.show(1)
-
