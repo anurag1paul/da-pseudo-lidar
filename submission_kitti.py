@@ -102,12 +102,17 @@ def main():
 
    for inx in range(len(test_left_img)):
 
-       imgL_o = (skimage.io.imread(test_left_img[inx]).astype('float32'))
-       imgR_o = (skimage.io.imread(test_right_img[inx]).astype('float32'))
+       # imgL_o = (skimage.io.imread(test_left_img[inx]).astype('float32'))
+       # imgR_o = (skimage.io.imread(test_right_img[inx]).astype('float32'))
 
-       skimage.io.imsave(args.save_path+'/l_'+test_left_img[inx].split('/')[-1], skimage.io.imread(test_left_img[inx]) )
+       imgL_o = Image.open(test_left_img[inx]).convert('RGB')
+       imgR_o = Image.open(test_right_img[inx]).convert('RGB')
 
-       skimage.io.imsave(args.save_path+'/r_'+test_left_img[inx].split('/')[-1], skimage.io.imread(test_right_img[inx] ))
+
+       # skimage.io.imsave(args.save_path+'/l_'+test_left_img[inx].split('/')[-1], skimage.io.imread(test_left_img[inx]) )
+
+       # skimage.io.imsave(args.save_path+'/r_'+test_left_img[inx].split('/')[-1], skimage.io.imread(test_right_img[inx] ))
+
 
 
        imgL = processed(imgL_o).numpy()
