@@ -7,6 +7,7 @@ import time
 import numpy as np
 import skimage
 import skimage.io
+from PIL import Image
 import skimage.transform
 import torch
 import torch.nn as nn
@@ -88,8 +89,8 @@ def main():
 
     for inx in range(5): #  len(test_left_img)):
 
-        imgL_o = skimage.io.imread(test_left_img[inx]).astype('float32')
-        imgR_o = skimage.io.imread(test_right_img[inx]).astype('float32')
+        imgL_o = np.array(Image.open((test_left_img[inx]).astype('float32')))
+        imgR_o = np.array(Image.open((test_right_img[inx]).astype('float32')))
 
         # GT
         disparity_GT = skimage.io.imread(test_disp[inx]) / 100.0
@@ -126,7 +127,7 @@ def main():
         print(test_left_img[inx].split('/')[-1])
         if args.save_figure:
             skimage.io.imsave(args.save_path + '/' + \
-                test_left_img[inx].split('/')[-1].split('.')[0] + '.png', # save as png
+                test_left_img[inx].split('/')[-1].split('.')[0] + '.jpg', # save as jpg 
                 (img * 256 / 1.5).astype('uint16')) # divide by 1.5 here to get actual depth
         else:
             np.save(

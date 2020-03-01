@@ -5,6 +5,7 @@ import os
 import time
 
 import numpy as np
+import skimage
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -78,7 +79,7 @@ if args.cuda:
     model = nn.DataParallel(model)
     model.cuda()
 
-if args.loadmodel is not None:
+if args.loadmodel is not None and args.model == 'stackhourglass':
     log.info('load model ' + args.loadmodel)
     state_dict = torch.load(args.loadmodel)
     model.load_state_dict(state_dict['state_dict'])
@@ -125,7 +126,7 @@ def train(imgL, imgR, disp_L):
     return loss.item()
 
 
-def test(imgL, imgR, disp_true):
+def test(imgL, imgR, disp_true, epoch, batch_idx):
     model.eval()
     if args.cuda:
         imgL, imgR = imgL.cuda(), imgR.cuda()
@@ -134,6 +135,11 @@ def test(imgL, imgR, disp_true):
         output3 = model(imgL, imgR)
 
     pred_disp = output3.data.cpu()
+
+    # save predictions
+    if batch_idx == 0:
+        skimage.io.imsave(args.savemodel + 'epoch_' + str(epoch) + '.png', # save as png
+            (pred_disp[0].data.cpu().numpy() * 256 / 1.5).astype('uint16')) # divide by 1.5 here to get actual depth
 
     # computing 3-px error#
     true_disp = disp_true
@@ -185,7 +191,7 @@ def main():
         total_val_loss = 0
         for batch_idx, (imgL, imgR, disp_L) in enumerate(ValImgLoader):
             val_start_time = time.time()
-            loss = test(imgL, imgR, disp_L)
+            loss = test(imgL, imgR, disp_L, epoch, batch_idx)
             total_val_loss += loss
             if batch_idx == 25:
                 break
