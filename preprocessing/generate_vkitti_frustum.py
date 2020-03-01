@@ -181,8 +181,8 @@ def extract_frustum_data(path, split, output_filename, viz=False,
             pos_cnt = 0
             all_cnt = 0
             for data_idx in range(len(dataset)):
-                print('------------- ', data_idx)
-                id = "{}/{}/{}".format(scene, sub_scene, data_idx)
+                idx = "{}/{}/{}".format(scene, sub_scene, data_idx)
+                print('------------- ', idx)
 
                 calib = dataset.get_calibration(data_idx)  # 3 by 4 matrix
                 objects = dataset.get_label_objects(data_idx)
@@ -241,7 +241,7 @@ def extract_frustum_data(path, split, output_filename, viz=False,
                         if ymax - ymin < 25 or np.sum(label) == 0:
                             continue
 
-                        id_list.append(id)
+                        id_list.append(idx)
                         box2d_list.append(np.array([xmin, ymin, xmax, ymax]))
                         box3d_list.append(box3d_pts_3d)
                         input_list.append(pc_in_box_fov)
@@ -302,8 +302,6 @@ def get_box3d_dim_statistics(path):
                     obj = objects[obj_idx]
                     if obj.type=='DontCare':continue
                     dimension_list[obj.type].append(np.array([obj.l,obj.w,obj.h]))
-            break
-        break
     
     for type, dims in dimension_list.items():
         dims_data = np.array(dims)
