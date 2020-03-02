@@ -257,14 +257,12 @@ def main():
 
     print(f'\n==> loading source dataset "{configs.source_dataset}"')
     source_dataset = configs.source_dataset()
-    source_loaders = {}
-    for split in source_dataset:
-        source_loaders[split] = DataLoader(
-            source_dataset[split], shuffle=(split == 'train'),
-            batch_size=configs.train.batch_size,
-            num_workers=configs.data.num_workers, pin_memory=True,
-            worker_init_fn=lambda worker_id: np.random.seed(seed + worker_id)
-        )
+    source_loaders = {"train": DataLoader(
+        source_dataset["train"], shuffle=True,
+        batch_size=configs.train.batch_size,
+        num_workers=configs.data.num_workers, pin_memory=True,
+        worker_init_fn=lambda worker_id: np.random.seed(seed + worker_id)
+    )}
 
     print(f'\n==> loading target dataset "{configs.target_dataset}"')
     target_dataset = configs.target_dataset()

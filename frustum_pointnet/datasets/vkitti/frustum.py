@@ -12,7 +12,7 @@ scenes_dict = {"train": ["Scene01", "Scene02", "Scene06", "Scene18"],
 
 
 class FrustumVkitti(dict):
-    def __init__(self, root, num_points, split=None, classes=('Car', 'Pedestrian', 'Cyclist'),
+    def __init__(self, root, num_points, split=None, classes=('Car', 'Van', 'Truck'),
                  num_heading_angle_bins=12, class_name_to_size_template_id=None,
                  from_rgb_detection=False, random_flip=False, random_shift=False, frustum_rotate=False):
         super().__init__()
