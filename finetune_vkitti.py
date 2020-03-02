@@ -16,6 +16,7 @@ import torch.utils.data
 from psmnet.utils import logger
 from psmnet.dataloader import VKittiLoader as VKitti
 from psmnet.models import *
+from psmnet.metrics import AverageMeter, Result
 
 parser = argparse.ArgumentParser(description='PSMNet')
 parser.add_argument('--maxdisp', type=int, default=160,
@@ -126,7 +127,7 @@ def train(imgL, imgR, disp_L):
     return loss.item()
 
 
-def test(imgL, imgR, disp_true, epoch, batch_idx):
+def test(imgL, imgR, disp_true, epoch, batch_idx, average_meter):
     model.eval()
     if args.cuda:
         imgL, imgR = imgL.cuda(), imgR.cuda()
@@ -140,6 +141,11 @@ def test(imgL, imgR, disp_true, epoch, batch_idx):
     if batch_idx == 0:
         skimage.io.imsave(args.savemodel + 'epoch_' + str(epoch) + '.png', # save as png
             (pred_disp[0].data.cpu().numpy() * 256 / 1.5).astype('uint16')) # divide by 1.5 here to get actual depth
+
+    # Compute Metrics
+    result = Result()
+    result.evaluate(pred_disp.data, disp_true.data)
+    average_meter.update(result, 0, 0, pred_disp.size(0))
 
     # computing 3-px error#
     true_disp = disp_true
@@ -189,15 +195,25 @@ def main():
 
         # validation
         total_val_loss = 0
+        metrics = AverageMeter()
         for batch_idx, (imgL, imgR, disp_L) in enumerate(ValImgLoader):
             val_start_time = time.time()
-            loss = test(imgL, imgR, disp_L, epoch, batch_idx)
+            loss = test(imgL, imgR, disp_L, epoch, batch_idx, metrics)
             total_val_loss += loss
             if batch_idx == 25:
                 break
 
         print('epoch %d total validation loss = %.3f' % (
         epoch, total_val_loss / len(ValImgLoader)))
+
+        avg = metrics.average()
+
+        print('epoch {epoch} validation metrics:\t'
+            'RMSE={average.rmse:.3f}\t'
+            'MAE={average.mae:.3f}\t'
+            'REL={average.absrel:.3f}\t'
+            'Lg10={average.lg10:.3f}\n'.format(
+            epoch=epoch, average=avg))
 
         # SAVE
         if not os.path.isdir(args.savemodel):
