@@ -2,6 +2,9 @@ import argparse
 import os
 import random
 import shutil
+import faulthandler
+
+faulthandler.enable()
 
 
 def prepare():
