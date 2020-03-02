@@ -45,7 +45,7 @@ configs.evaluate.dataset = Config(split='val', from_rgb_detection=True)
 
 # train configs
 configs.train = Config()
-configs.train.num_epochs = 209
+configs.train.num_epochs = 100
 configs.train.batch_size = 32
 
 # train: meters
