@@ -7,6 +7,9 @@ from torch.utils.data import Dataset
 from datasets.vkitti.attributes import vkitti_attributes as vkitti
 from utils.container import G
 
+scenes_dict = {"train": ["Scene01", "Scene02", "Scene06", "Scene18"],
+               "val": ["Scene20"]}
+
 
 class FrustumVkitti(dict):
     def __init__(self, root, num_points, split=None, classes=('Car', 'Pedestrian', 'Cyclist'),
@@ -77,17 +80,28 @@ class _FrustumVkittiDataset(Dataset):
                 self.data.frustum_rotation_angles = pickle.load(fp, encoding='latin1')
                 self.data.probs = pickle.load(fp, encoding='latin1')
         else:
-            with open(os.path.join(self.root, f'frustum_carvantruck_{split}.pickle'), 'rb') as fp:
-                self.data.ids = pickle.load(fp)
-                self.data.boxes_2d = pickle.load(fp, encoding='latin1')
-                self.data.boxes_3d = pickle.load(fp, encoding='latin1')
-                self.data.point_clouds = pickle.load(fp, encoding='latin1')
-                self.data.mask_logits = pickle.load(fp, encoding='latin1')
-                self.data.class_names = pickle.load(fp, encoding='latin1')
-                self.data.heading_angles = pickle.load(fp, encoding='latin1')
-                self.data.sizes = pickle.load(fp, encoding='latin1')
-                # frustum_angle is clockwise angle from positive x-axis
-                self.data.frustum_rotation_angles = pickle.load(fp, encoding='latin1')
+            self.data.ids = []
+            self.data.boxes_2d = []
+            self.data.boxes_3d = []
+            self.data.point_clouds = []
+            self.data.mask_logits = []
+            self.data.class_names = []
+            self.data.heading_angles = []
+            self.data.sizes = []
+            # frustum_angle is clockwise angle from positive x-axis
+            self.data.frustum_rotation_angles = []
+            for scene in scenes_dict[split]:
+                with open(os.path.join(self.root,
+                                       f'frustum_carvantruck_{split}_{scene}.pickle'), 'rb') as fp:
+                    self.data.ids.extend(pickle.load(fp))
+                    self.data.boxes_2d.extend(pickle.load(fp, encoding='latin1'))
+                    self.data.boxes_3d.extend(pickle.load(fp, encoding='latin1'))
+                    self.data.point_clouds.extend(pickle.load(fp, encoding='latin1'))
+                    self.data.mask_logits.extend(pickle.load(fp, encoding='latin1'))
+                    self.data.class_names.extend(pickle.load(fp, encoding='latin1'))
+                    self.data.heading_angles.extend(pickle.load(fp, encoding='latin1'))
+                    self.data.sizes.extend(pickle.load(fp, encoding='latin1'))
+                    self.data.frustum_rotation_angles.extend(pickle.load(fp, encoding='latin1'))
 
     def __len__(self):
         return len(self.data.point_clouds)
