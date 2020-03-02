@@ -68,7 +68,7 @@ def evaluate(configs=None):
     from torch.utils.data import DataLoader
     from tqdm import tqdm
 
-    from ..utils import eval_from_files
+    # from ..utils import eval_from_files
 
     ###########
     # Prepare #
