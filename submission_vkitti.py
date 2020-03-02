@@ -46,8 +46,7 @@ torch.manual_seed(args.seed)
 if args.cuda:
     torch.cuda.manual_seed(args.seed)
 
-test_left_img, test_right_img, test_disp = DA.dataloader(args.datapath,
-                                              "psmnet/vkitti/val.csv")
+test_left_img, test_right_img, test_disp = DA.dataloader(args.datapath, "val")
 
 if args.model == 'stackhourglass':
     model = stackhourglass(args.maxdisp)
@@ -89,8 +88,8 @@ def main():
 
     for inx in range(5): #  len(test_left_img)):
 
-        imgL_o = np.array(Image.open((test_left_img[inx]).astype('float32')))
-        imgR_o = np.array(Image.open((test_right_img[inx]).astype('float32')))
+        imgL_o = np.array(Image.open((test_left_img[inx])))
+        imgR_o = np.array(Image.open((test_right_img[inx])))
 
         # GT
         disparity_GT = skimage.io.imread(test_disp[inx]) / 100.0
