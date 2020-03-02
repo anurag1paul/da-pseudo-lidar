@@ -4,8 +4,11 @@ import os
 import random
 import shutil
 
+from tqdm import trange
+
 from modules import mmd
 from modules.loss import discrepancy_loss
+from utils.common import loop_iterable
 
 
 def prepare():
@@ -126,10 +129,11 @@ def main():
         loss_node_total = 0
         data_total = 0
 
-        for batch_s, batch_t in tqdm(zip(source_loader, target_loader),
-                                     desc='train', ncols=0):
-            inputs, targets = batch_s
-            inputs_t, _ = batch_t
+        batch_iterator = zip(loop_iterable(source_loader),
+                             loop_iterable(target_loader))
+
+        for _ in trange(len(source_loader)):
+            (inputs, targets), (inputs_t, _) = next(batch_iterator)
 
             if isinstance(inputs, dict):
                 for k, v in inputs.items():
