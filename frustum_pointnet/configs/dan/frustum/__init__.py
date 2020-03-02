@@ -57,9 +57,9 @@ configs.evaluate.dataset = Config(FrustumKitti)
 configs.evaluate.dataset.root = 'data/kitti/frustum/frustum_data'
 configs.evaluate.dataset.split = "val"
 configs.evaluate.dataset.num_points = 1024
-configs.evaluate.classes = configs.data.classes
-configs.evaluate.num_heading_angle_bins = configs.data.num_heading_angle_bins
-configs.evaluate.class_name_to_size_template_id = configs.data.class_name_to_size_template_id
+configs.evaluate.dataset.classes = configs.data.classes
+configs.evaluate.dataset.num_heading_angle_bins = configs.data.num_heading_angle_bins
+configs.evaluate.dataset.class_name_to_size_template_id = configs.data.class_name_to_size_template_id
 
 # train configs
 configs.train = Config()
