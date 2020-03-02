@@ -43,6 +43,7 @@ configs.dataset.from_rgb_detection = False
 configs.evaluate.fn = evaluate
 configs.evaluate.batch_size = 32
 configs.evaluate.dataset = Config(FrustumKitti)
+configs.evaluate.dataset.from_rgb_detection = True
 configs.evaluate.dataset.root = 'data/kitti/frustum/frustum_data'
 configs.evaluate.dataset.split = "val"
 configs.evaluate.dataset.num_points = 1024
