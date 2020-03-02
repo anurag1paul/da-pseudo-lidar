@@ -164,18 +164,18 @@ def extract_frustum_data(path, split, output_filename, viz=False,
         None (will write a .pickle file to the disk)
     '''
 
-    id_list = []  # identifier
-    box2d_list = []  # [xmin, ymin, xmax, ymax]
-    box3d_list = []  # (8,3) array in rect camera coord
-    input_list = []  # channel number = 4, xyz,intensity in rect camera coord
-    label_list = []  # 1 for roi object, 0 for clutter
-    type_list = []  # string e.g. Car
-    heading_list = []  # ry (along y-axis in rect camera coord) radius of
-    # (cont.) clockwise angle from positive x axis in velo coord.
-    box3d_size_list = []  # array of l,w,h
-    frustum_angle_list = []  # angle of 2d box center from pos x-axis
-
     for scene in scenes_dict[split]:
+        id_list = []  # identifier
+        box2d_list = []  # [xmin, ymin, xmax, ymax]
+        box3d_list = []  # (8,3) array in rect camera coord
+        input_list = []  # channel number = 4, xyz,intensity in rect camera coord
+        label_list = []  # 1 for roi object, 0 for clutter
+        type_list = []  # string e.g. Car
+        heading_list = []  # ry (along y-axis in rect camera coord) radius of
+        # (cont.) clockwise angle from positive x axis in velo coord.
+        box3d_size_list = []  # array of l,w,h
+        frustum_angle_list = []  # angle of 2d box center from pos x-axis
+
         for sub_scene in sub_scenes:
             dataset = vkitti_object(path, split, scene, sub_scene)
             pos_cnt = 0
@@ -238,7 +238,7 @@ def extract_frustum_data(path, split, output_filename, viz=False,
                         box3d_size = np.array([obj.l, obj.w, obj.h])
 
                         # Reject too far away object or object without points
-                        if ymax - ymin < 25 or np.sum(label) == 0:
+                        if ymax - ymin < 25 or np.sum(label) < 50:
                             continue
 
                         id_list.append(idx)
@@ -255,20 +255,20 @@ def extract_frustum_data(path, split, output_filename, viz=False,
                         pos_cnt += np.sum(label)
                         all_cnt += pc_in_box_fov.shape[0]
 
-    print("Number of boxes:{}".format(len(input_list)))
-    print('Average pos ratio: %f' % (pos_cnt / float(all_cnt)))
-    print('Average npoints: %f' % (float(all_cnt) / len(id_list)))
+        print("Number of boxes:{}".format(len(input_list)))
+        print('Average pos ratio: %f' % (pos_cnt / float(all_cnt)))
+        print('Average npoints: %f' % (float(all_cnt) / len(id_list)))
 
-    with open(output_filename, 'wb') as fp:
-        pickle.dump(id_list, fp)
-        pickle.dump(box2d_list, fp)
-        pickle.dump(box3d_list, fp)
-        pickle.dump(input_list, fp)
-        pickle.dump(label_list, fp)
-        pickle.dump(type_list, fp)
-        pickle.dump(heading_list, fp)
-        pickle.dump(box3d_size_list, fp)
-        pickle.dump(frustum_angle_list, fp)
+        with open("{}_{}.pickle".format(output_filename, scene), 'wb') as fp:
+            pickle.dump(id_list, fp)
+            pickle.dump(box2d_list, fp)
+            pickle.dump(box3d_list, fp)
+            pickle.dump(input_list, fp)
+            pickle.dump(label_list, fp)
+            pickle.dump(type_list, fp)
+            pickle.dump(heading_list, fp)
+            pickle.dump(box3d_size_list, fp)
+            pickle.dump(frustum_angle_list, fp)
 
     if viz:
         import mayavi.mlab as mlab
@@ -343,7 +343,7 @@ if __name__ == '__main__':
         extract_frustum_data(
             args.path,
             'train',
-            os.path.join(BASE_DIR, output_prefix + 'train.pickle'),
+            os.path.join(BASE_DIR, output_prefix + 'train'),
             viz=False, perturb_box2d=True, augmentX=5,
             type_whitelist=type_whitelist)
 
@@ -351,6 +351,6 @@ if __name__ == '__main__':
         extract_frustum_data(
             args.path,
             'val',
-            os.path.join(BASE_DIR, output_prefix + 'val.pickle'),
+            os.path.join(BASE_DIR, output_prefix + 'val'),
             viz=False, perturb_box2d=False, augmentX=1,
             type_whitelist=type_whitelist)
