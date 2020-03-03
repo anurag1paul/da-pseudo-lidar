@@ -43,6 +43,8 @@ def poly_mmd2(f_of_X, f_of_Y, d=2, alpha=1.0, c=2.0):
 
 
 def _mix_rbf_kernel(X, Y, sigma_list):
+    if X.size(0) != Y.size(0):
+        print(X.shape, Y.shape)
     assert(X.size(0) == Y.size(0))
     m = X.size(0)
 

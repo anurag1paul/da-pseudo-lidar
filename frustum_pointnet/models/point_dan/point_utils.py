@@ -71,6 +71,8 @@ def query_ball_point(radius, nsample, xyz, new_xyz):
         group_first = group_idx[:, :, 0].view(B, S, 1).repeat([1, 1, nsample])
         mask = group_idx == N
         group_idx[mask] = group_first[mask]
+        if torch.max(group_idx) == N:
+            group_idx = torch.sort(sqrdists, dim=-1)[1][:,:,:nsample]
     else:
         group_idx = torch.sort(sqrdists, dim=-1)[1][:,:,:nsample]
     return group_idx

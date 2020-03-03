@@ -64,7 +64,7 @@ configs.evaluate.dataset.class_name_to_size_template_id = configs.data.class_nam
 # train configs
 configs.train = Config()
 configs.train.num_epochs = 100
-configs.train.batch_size = 24
+configs.train.batch_size = 32
 
 # train: meters
 configs.train.meters = Config()
