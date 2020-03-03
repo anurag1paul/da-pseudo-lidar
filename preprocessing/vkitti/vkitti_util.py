@@ -91,6 +91,11 @@ class Calibration(object):
         self.extrinsics = self.process_extrinsic(extrinsic_values)
         self.R0 = np.linalg.inv(self.extrinsics[:3, :3])
 
+        velo = "7.533745000000e-03 -9.999714000000e-01 -6.166020000000e-04 -4.069766000000e-03 1.480249000000e-02 7.280733000000e-04 -9.998902000000e-01 -7.631618000000e-02 9.998621000000e-01 7.523790000000e-03 1.480755000000e-02 -2.717806000000e-01"
+        self.V2C = np.array([float(x) for x in velo.split()])
+        self.V2C = np.reshape(self.V2C, [3,4])
+        self.C2V = inverse_rigid_trans(self.V2C)
+
         # Camera intrinsics and extrinsics
         self.c_u = self.P[0, 2]
         self.c_v = self.P[1, 2]
@@ -114,67 +119,84 @@ class Calibration(object):
         extrinsics = np.array(list(extrinsic_values)[2:]).reshape((4, 4))
         return extrinsics
 
-    @staticmethod
-    def cart2hom(pts_3d):
-        """ Input: nx3 points in Cartesian
-            Output: nx4 points in Homogeneous by pending 1
-        """
+    def cart2hom(self, pts_3d):
+        ''' Input: nx3 points in Cartesian
+            Oupput: nx4 points in Homogeneous by pending 1
+        '''
         n = pts_3d.shape[0]
-        pts_3d_hom = np.hstack((pts_3d, np.ones((n, 1))))
+        pts_3d_hom = np.hstack((pts_3d, np.ones((n,1))))
         return pts_3d_hom
 
     # ===========================
     # ------- 3d to 3d ----------
     # ===========================
+    def project_velo_to_ref(self, pts_3d_velo):
+        pts_3d_velo = self.cart2hom(pts_3d_velo) # nx4
+        return np.dot(pts_3d_velo, np.transpose(self.V2C))
+
+    def project_ref_to_velo(self, pts_3d_ref):
+        pts_3d_ref = self.cart2hom(pts_3d_ref) # nx4
+        return np.dot(pts_3d_ref, np.transpose(self.C2V))
+
     def project_rect_to_ref(self, pts_3d_rect):
-        """ Input and Output are nx3 points """
-        return np.transpose(
-            np.dot(np.linalg.inv(self.R0), np.transpose(pts_3d_rect)))
+        ''' Input and Output are nx3 points '''
+        return np.transpose(np.dot(np.linalg.inv(self.R0), np.transpose(pts_3d_rect)))
 
     def project_ref_to_rect(self, pts_3d_ref):
-        """ Input and Output are nx3 points """
+        ''' Input and Output are nx3 points '''
         return np.transpose(np.dot(self.R0, np.transpose(pts_3d_ref)))
+
+    def project_rect_to_velo(self, pts_3d_rect):
+        ''' Input: nx3 points in rect camera coord.
+            Output: nx3 points in velodyne coord.
+        '''
+        pts_3d_ref = self.project_rect_to_ref(pts_3d_rect)
+        return self.project_ref_to_velo(pts_3d_ref)
+
+    def project_velo_to_rect(self, pts_3d_velo):
+        pts_3d_ref = self.project_velo_to_ref(pts_3d_velo)
+        return self.project_ref_to_rect(pts_3d_ref)
 
     # ===========================
     # ------- 3d to 2d ----------
     # ===========================
     def project_rect_to_image(self, pts_3d_rect):
-        """ Input: nx3 points in rect camera coord.
+        ''' Input: nx3 points in rect camera coord.
             Output: nx2 points in image2 coord.
-        """
+        '''
         pts_3d_rect = self.cart2hom(pts_3d_rect)
-        pts_2d = np.dot(pts_3d_rect, np.transpose(self.P))  # nx3
-        pts_2d[:, 0] /= pts_2d[:, 2]
-        pts_2d[:, 1] /= pts_2d[:, 2]
-        return pts_2d[:, 0:2]
+        pts_2d = np.dot(pts_3d_rect, np.transpose(self.P)) # nx3
+        pts_2d[:,0] /= pts_2d[:,2]
+        pts_2d[:,1] /= pts_2d[:,2]
+        return pts_2d[:,0:2]
 
-    def project_ref_to_image(self, pts_3d_ref):
+    def project_velo_to_image(self, pts_3d_velo):
         ''' Input: nx3 points in velodyne coord.
             Output: nx2 points in image2 coord.
         '''
-        pts_3d_rect = self.project_ref_to_rect(pts_3d_ref)
+        pts_3d_rect = self.project_velo_to_rect(pts_3d_velo)
         return self.project_rect_to_image(pts_3d_rect)
 
     # ===========================
     # ------- 2d to 3d ----------
     # ===========================
     def project_image_to_rect(self, uv_depth):
-        """ Input: nx3 first two channels are uv, 3rd channel
+        ''' Input: nx3 first two channels are uv, 3rd channel
                    is depth in rect camera coord.
             Output: nx3 points in rect camera coord.
-        """
+        '''
         n = uv_depth.shape[0]
-        x = ((uv_depth[:, 0] - self.c_u) * uv_depth[:, 2]) / self.f_u + self.b_x
-        y = ((uv_depth[:, 1] - self.c_v) * uv_depth[:, 2]) / self.f_v + self.b_y
-        pts_3d_rect = np.zeros((n, 3))
-        pts_3d_rect[:, 0] = x
-        pts_3d_rect[:, 1] = y
-        pts_3d_rect[:, 2] = uv_depth[:, 2]
+        x = ((uv_depth[:,0]-self.c_u)*uv_depth[:,2])/self.f_u + self.b_x
+        y = ((uv_depth[:,1]-self.c_v)*uv_depth[:,2])/self.f_v + self.b_y
+        pts_3d_rect = np.zeros((n,3))
+        pts_3d_rect[:,0] = x
+        pts_3d_rect[:,1] = y
+        pts_3d_rect[:,2] = uv_depth[:,2]
         return pts_3d_rect
 
-    def project_image_to_ref(self, uv_depth):
+    def project_image_to_velo(self, uv_depth):
         pts_3d_rect = self.project_image_to_rect(uv_depth)
-        return self.project_rect_to_ref(pts_3d_rect)
+        return self.project_rect_to_velo(pts_3d_rect)
 
 
 def rotx(t):
