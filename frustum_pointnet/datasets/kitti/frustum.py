@@ -68,7 +68,12 @@ class _FrustumKittiDataset(Dataset):
         self.data = G()
 
         if self.from_rgb_detection:
-            with open(os.path.join(self.root, f'frustum_caronly_{split}_rgb_detection.pickle'), 'rb') as fp:
+            if self.num_classes == 1:
+                file = f'frustum_caronly_{split}_rgb_detection.pickle'
+            else:
+                file = f'frustum_carpedcyc_{split}_rgb_detection.pickle'
+
+            with open(os.path.join(self.root, file), 'rb') as fp:
                 self.data.ids = pickle.load(fp)
                 self.data.boxes_2d = pickle.load(fp, encoding='latin1')
                 self.data.point_clouds = pickle.load(fp, encoding='latin1')
@@ -77,7 +82,12 @@ class _FrustumKittiDataset(Dataset):
                 self.data.frustum_rotation_angles = pickle.load(fp, encoding='latin1')
                 self.data.probs = pickle.load(fp, encoding='latin1')
         else:
-            with open(os.path.join(self.root, f'frustum_caronly_{split}.pickle'), 'rb') as fp:
+            if self.num_classes == 1:
+                file = f'frustum_caronly_{split}.pickle'
+            else:
+                file = f'frustum_carpedcyc_{split}.pickle'
+
+            with open(os.path.join(self.root, file), 'rb') as fp:
                 self.data.ids = pickle.load(fp)
                 self.data.boxes_2d = pickle.load(fp, encoding='latin1')
                 self.data.boxes_3d = pickle.load(fp, encoding='latin1')
