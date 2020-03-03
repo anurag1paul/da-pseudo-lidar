@@ -115,8 +115,7 @@ def evaluate(configs=None):
         if test_index == 0:
             print(configs)
 
-        seed = configs.seed
-        if test_index > 0:
+        if test_index >= 0:
             seed = random.randint(1, int(time.time())) % (2 ** 32 - 1)
             print(f'\n==> Test [{test_index:02d}/{configs.evaluate.num_tests:02d}] initial seed\n[seed] = {seed}')
         random.seed(seed)
