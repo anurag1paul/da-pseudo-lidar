@@ -188,22 +188,19 @@ def extract_frustum_data(path, split, output_filename, viz=False,
                 idx = "{}/{}/{}".format(scene, sub_scene, data_idx)
                 print('------------- ', idx)
 
-                calib = dataset.get_calibration(data_idx)  # 3 by 4 matrix
+                calib = dataset.get_calibration(data_idx) # 3 by 4 matrix
                 objects = dataset.get_label_objects(data_idx)
                 pc_velo = dataset.get_lidar(data_idx)
-
                 pc_rect = np.zeros_like(pc_velo)
-                pc_rect[:, 0:3] = calib.project_ref_to_rect(pc_velo[:, 0:3])
-                pc_rect[:, 3] = pc_velo[:, 3]
-
+                pc_rect[:, 0:3] = calib.project_velo_to_rect(pc_velo[:, 0:3])
+                pc_rect[:,3] = pc_velo[:,3]
                 img = dataset.get_image(data_idx)
                 img_height, img_width, img_channel = img.shape
-
-                _, pc_image_coord, img_fov_inds = get_lidar_in_image_fov(
-                    pc_velo[:, 0:3], calib, 0, 0, img_width, img_height, True)
+                _, pc_image_coord, img_fov_inds = get_lidar_in_image_fov(pc_velo[:,0:3],
+                calib, 0, 0, img_width, img_height, True)
 
                 for obj_idx in range(len(objects)):
-                    if objects[obj_idx].type not in type_whitelist: continue
+                    if objects[obj_idx].type not in type_whitelist :continue
 
                     # 2D BOX: Get pts rect backprojected
                     box2d = objects[obj_idx].box2d
@@ -213,27 +210,24 @@ def extract_frustum_data(path, split, output_filename, viz=False,
                             xmin, ymin, xmax, ymax = random_shift_box2d(box2d)
                         else:
                             xmin, ymin, xmax, ymax = box2d
-                        box_fov_inds = (pc_image_coord[:, 0] < xmax) & \
-                                       (pc_image_coord[:, 0] >= xmin) & \
-                                       (pc_image_coord[:, 1] < ymax) & \
-                                       (pc_image_coord[:, 1] >= ymin)
+                        box_fov_inds = (pc_image_coord[:,0]<xmax) & \
+                            (pc_image_coord[:,0]>=xmin) & \
+                            (pc_image_coord[:,1]<ymax) & \
+                            (pc_image_coord[:,1]>=ymin)
                         box_fov_inds = box_fov_inds & img_fov_inds
-                        pc_in_box_fov = pc_rect[box_fov_inds, :]
+                        pc_in_box_fov = pc_rect[box_fov_inds,:]
                         # Get frustum angle (according to center pixel in 2D BOX)
-                        box2d_center = np.array(
-                            [(xmin + xmax) / 2.0, (ymin + ymax) / 2.0])
-                        uvdepth = np.zeros((1, 3))
-                        uvdepth[0, 0:2] = box2d_center
-                        uvdepth[0, 2] = 20  # some random depth
+                        box2d_center = np.array([(xmin+xmax)/2.0, (ymin+ymax)/2.0])
+                        uvdepth = np.zeros((1,3))
+                        uvdepth[0,0:2] = box2d_center
+                        uvdepth[0,2] = 20 # some random depth
                         box2d_center_rect = calib.project_image_to_rect(uvdepth)
-                        frustum_angle = -1 * np.arctan2(box2d_center_rect[0, 2],
-                                                        box2d_center_rect[0, 0])
+                        frustum_angle = -1 * np.arctan2(box2d_center_rect[0,2],
+                            box2d_center_rect[0,0])
                         # 3D BOX: Get pts velo in 3d box
                         obj = objects[obj_idx]
-                        box3d_pts_2d, box3d_pts_3d = utils.compute_box_3d(obj,
-                                                                          calib.P)
-                        _, inds = extract_pc_in_box3d(pc_in_box_fov,
-                                                      box3d_pts_3d)
+                        box3d_pts_2d, box3d_pts_3d = utils.compute_box_3d(obj, calib.P)
+                        _,inds = extract_pc_in_box3d(pc_in_box_fov, box3d_pts_3d)
                         label = np.zeros((pc_in_box_fov.shape[0]))
                         label[inds] = 1
                         # Get 3D BOX heading
@@ -242,11 +236,11 @@ def extract_frustum_data(path, split, output_filename, viz=False,
                         box3d_size = np.array([obj.l, obj.w, obj.h])
 
                         # Reject too far away object or object without points
-                        if ymax - ymin < 25 or np.sum(label) == 0:
+                        if ymax-ymin<25 or np.sum(label)==0:
                             continue
 
-                        id_list.append(idx)
-                        box2d_list.append(np.array([xmin, ymin, xmax, ymax]))
+                        id_list.append(data_idx)
+                        box2d_list.append(np.array([xmin,ymin,xmax,ymax]))
                         box3d_list.append(box3d_pts_3d)
                         input_list.append(pc_in_box_fov)
                         label_list.append(label)
