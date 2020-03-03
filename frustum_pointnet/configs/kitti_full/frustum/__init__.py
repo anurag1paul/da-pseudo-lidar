@@ -41,14 +41,7 @@ configs.dataset.from_rgb_detection = False
 # evaluate configs
 configs.evaluate.fn = evaluate
 configs.evaluate.batch_size = 32
-configs.evaluate.dataset = Config(FrustumKitti)
-configs.evaluate.dataset.from_rgb_detection = True
-configs.evaluate.dataset.root = 'data/kitti/frustum/frustum_data'
-configs.evaluate.dataset.split = "val"
-configs.evaluate.dataset.num_points = 1024
-configs.evaluate.dataset.classes = configs.data.classes
-configs.evaluate.dataset.num_heading_angle_bins = configs.data.num_heading_angle_bins
-configs.evaluate.dataset.class_name_to_size_template_id = configs.data.class_name_to_size_template_id
+configs.evaluate.dataset = Config(split='val', from_rgb_detection=True)
 
 # train configs
 configs.train = Config()

@@ -2,9 +2,6 @@ import argparse
 import os
 import random
 import shutil
-import faulthandler
-
-faulthandler.enable()
 
 
 def prepare():
@@ -37,7 +34,9 @@ def prepare():
         configs.device = 'cuda'
         configs.device_ids = gpus
     if args.evaluate and configs.evaluate.fn is not None:
-        pass
+        if 'dataset' in configs.evaluate:
+            for k, v in configs.evaluate.dataset.items():
+                configs.dataset[k] = v
     else:
         configs.evaluate = None
 

@@ -72,7 +72,7 @@ class _FrustumKittiDataset(Dataset):
                 file = f'frustum_caronly_{split}_rgb_detection.pickle'
             else:
                 file = f'frustum_carpedcyc_{split}_rgb_detection.pickle'
-
+            
             with open(os.path.join(self.root, file), 'rb') as fp:
                 self.data.ids = pickle.load(fp)
                 self.data.boxes_2d = pickle.load(fp, encoding='latin1')
@@ -98,7 +98,8 @@ class _FrustumKittiDataset(Dataset):
                 self.data.sizes = pickle.load(fp, encoding='latin1')
                 # frustum_angle is clockwise angle from positive x-axis
                 self.data.frustum_rotation_angles = pickle.load(fp, encoding='latin1')
-
+        print("Load file:", file)
+        
     def __len__(self):
         return len(self.data.point_clouds)
 

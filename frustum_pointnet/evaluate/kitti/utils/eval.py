@@ -5,7 +5,7 @@ import io as sysio
 import numba
 import numpy as np
 
-from evaluate.kitti.utils.iou import rotate_iou_gpu_eval
+from .iou import rotate_iou_gpu_eval
 
 
 __all__ = ['get_official_eval_result']

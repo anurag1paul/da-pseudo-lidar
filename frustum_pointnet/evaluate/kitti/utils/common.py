@@ -5,7 +5,7 @@ import re
 
 import numpy as np
 
-from evaluate.kitti.utils.eval import get_official_eval_result
+from .eval import get_official_eval_result
 
 __all__ = ['eval_from_files']
 
