@@ -16,8 +16,8 @@ import vkitti.vkitti_util as utils
 
 raw_input = input  # Python 3
 
-scenes_dict = {"train": ["Scene01", "Scene02", "Scene06", "Scene18"],
-               "val": ["Scene20"]}
+scenes_dict = {"train": ["Scene01", "Scene06", "Scene18"],
+               "val": ["Scene02"]}
 sub_scenes = ["15-deg-left", "30-deg-left", "15-deg-right", "30-deg-right",
               "clone", "morning", "rain", "fog", "overcast", "sunset"]
 
@@ -99,7 +99,8 @@ class vkitti_object(object):
         depth = self.get_depth_map(idx)
         velo = project_depth_to_points(calib, depth)
         velo = np.concatenate([velo, np.ones((velo.shape[0], 1))], 1)
-        points = 0.2   # percentage of points to be rejected
+        points = 0.5   # percentage of points to be rejected
+        points = 0.5   # percentage of points to be rejected
         points_step = int(1. / points)
         velo_range = range(0, velo.shape[0], points_step)
         velo_frame = velo[velo_range, :]
