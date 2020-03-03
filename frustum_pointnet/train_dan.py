@@ -41,10 +41,8 @@ def prepare():
         configs.device = 'cuda'
         configs.device_ids = gpus
     if args.evaluate and configs.evaluate.fn is not None:
-        # if 'dataset' in configs.evaluate:
-        #     for k, v in configs.evaluate.dataset.items():
-        #         configs.dataset[k] = v
-        pass
+        if 'dataset' in configs.evaluate:
+            configs.dataset = configs.evaluate.dataset
     else:
         configs.evaluate = None
 
