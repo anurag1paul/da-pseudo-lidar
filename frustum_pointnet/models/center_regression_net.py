@@ -34,7 +34,7 @@ class CenterRegressionNet(nn.Module):
 
 
 class CenterRegressionPointDanGenerator(nn.Module):
-
+    blocks = (128, 128, 256)
     def __init__(self, num_classes, width_multiplier):
         super().__init__()
         self.in_channels = 3
@@ -61,7 +61,6 @@ class CenterRegressionPointDanGenerator(nn.Module):
 
 
 class CenterRegressionPointDan(nn.Module):
-    blocks = (128, 128, 256)
 
     def __init__(self, num_classes=3, width_multiplier=1):
         super().__init__()
