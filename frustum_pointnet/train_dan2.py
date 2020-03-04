@@ -158,7 +158,7 @@ def main():
 
             outputs = model(inputs)
 
-            outputs_target = model((inputs_t, cons, True))
+            outputs_target = model(inputs_t, cons, True)
 
             loss_s = criterion(outputs, targets)
 
@@ -173,9 +173,9 @@ def main():
             optimizer_cls.zero_grad()
 
             # Local Alignment
-            feat_node_s = model(inputs, node_adaptation_s=True)
+            feat_node_s = model(inputs, adaptation_s=True)
 
-            feat_node_t = model(inputs_t, node_adaptation_t=True)
+            feat_node_t = model(inputs_t, adaptation_t=True)
 
             sigma_list = [0.01, 0.1, 1, 10, 100]
             loss_node_adv = (mmd.mix_rbf_mmd2(feat_node_s["seg_mmd_feat"],

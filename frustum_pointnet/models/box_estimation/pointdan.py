@@ -21,9 +21,9 @@ class PointnetG(nn.Module):
             blocks=blocks, in_channels=self.in_channels, with_se=False, normalize=True, eps=1e-15,
             width_multiplier=width_multiplier, voxel_resolution_multiplier=voxel_resolution_multiplier
         )
-        self.channels_point = channels_point +64
+        self.channels_point = 2 * channels_point
         self.features = nn.Sequential(*layers)
-        self.node = adapt_layer_off()
+        self.node = adapt_layer_off(trans_dim_in=channels_point, trans_dim_out=channels_point, fc_dim=channels_point)
 
     def forward(self, x, node=False):
         x_loc = x.squeeze(-1)
@@ -36,7 +36,8 @@ class PointnetG(nn.Module):
         x = self.features(x)
         x = x.unsqueeze(3)
         x, node_feat, node_off = self.node(x, x_loc)
-
+        
+        x = x.squeeze(-1)
         x = x.max(dim=-1, keepdim=False).values
 
         if node:

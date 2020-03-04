@@ -131,7 +131,7 @@ class InstanceSegmentationPointDAN(nn.Module):
         )
         self.c2 = nn.Sequential(*layers)
 
-    def forward(self, inputs, constant=1, adaptation=False, node_vis=False,
+    def forward(self, inputs, constant=1, adaptation=False,
                 node_adaptation_s=False, node_adaptation_t=False):
 
         features = inputs['features']
@@ -144,10 +144,6 @@ class InstanceSegmentationPointDAN(nn.Module):
         features = features.unsqueeze(-1)
         cloud_feat, point_feat, feat_ori, node_idx = self.g(features, node=True)
         batch_size = feat_ori.size(0)
-
-        # sa node visualization
-        if node_vis:
-            return node_idx
 
         node_features = None
         if node_adaptation_s:

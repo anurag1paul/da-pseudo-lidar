@@ -43,16 +43,18 @@ class CenterRegressionPointDanGenerator(nn.Module):
         layers, channels = create_mlp_components(in_channels=self.in_channels, out_channels=self.blocks,
                                                  classifier=False, dim=2, width_multiplier=width_multiplier)
         self.features = nn.Sequential(*layers)
-        self.channels = channels + 64
+        self.channels = 2 * channels
 
-        self.node = adapt_layer_off()
+        self.node = adapt_layer_off(trans_dim_in=256, trans_dim_out=256, fc_dim=256)
 
     def forward(self, x, node=False):
         x_loc = x.squeeze(-1)
         x = self.features(x)
+        
         x = x.unsqueeze(3)
         x, node_feat, node_off = self.node(x, x_loc)
-
+        
+        x = x.squeeze(-1)
         x = x.max(dim=-1, keepdim=False).values
 
         if node:
