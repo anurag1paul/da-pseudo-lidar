@@ -291,17 +291,22 @@ def main():
     gen_params = [{'params': v} for k, v in
                   model.module.inst_seg_net.g.named_parameters()
                   if 'pred_offset' not in k]
+    
+    gen_params.extend([{'params': model.module.center_reg_net.features.parameters()},
+                       {'params': model.module.box_est_net.g.parameters()}])
 
     cls_params = [{'params': model.module.inst_seg_net.c1.parameters()},
                   {'params': model.module.inst_seg_net.c2.parameters()},
-                  {'params': model.module.center_reg_net.parameters()},
-                  {'params': model.module.box_est_net.parameters()}]
+                  {'params': model.module.center_reg_net.r1.parameters()},
+                  {'params': model.module.center_reg_net.r2.parameters()},
+                  {'params': model.module.box_est_net.c1.parameters()},
+                  {'params': model.module.box_est_net.c2.parameters()}]
 
     dis_params = [{'params': model.module.inst_seg_net.g.parameters()},
-                  {
-                      'params': model.module.inst_seg_net.attention_s.parameters()},
-                  {
-                      'params': model.module.inst_seg_net.attention_t.parameters()}]
+                  {'params': model.module.center_reg_net.features.parameters()},
+                  {'params': model.module.box_est_net.g.parameters()},
+                  {'params': model.module.inst_seg_net.attention_s.parameters()},
+                  {'params': model.module.inst_seg_net.attention_t.parameters()}]
 
     optimizer_g = configs.train.optimizer_g(gen_params)
     optimizer_cls = configs.train.optimizer_cls(cls_params)
