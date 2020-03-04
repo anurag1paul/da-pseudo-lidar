@@ -45,7 +45,7 @@ class BoxEstimationPointDan(nn.Module):
 
         self.num_classes = num_classes
 
-        self.g = PointnetG(self.in_channels)
+        self.g = PointnetG(num_classes)
 
         channels_point = self.g.channels_point
 
