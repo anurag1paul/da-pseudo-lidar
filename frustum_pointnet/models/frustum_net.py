@@ -7,10 +7,11 @@ import modules.functional as F
 from models.box_estimation import *
 from models.point_dan.point_dan import InstanceSegmentationPointDAN
 from models.segmentation import *
-from models.center_regression_net import CenterRegressionNet
+from models.center_regression_net import CenterRegressionNet, \
+    CenterRegressionPointDan
 
 __all__ = ['FrustumPointNet', 'FrustumPointNet2',
-           'FrustumPVCNNE', 'FrustumPointDAN']
+           'FrustumPVCNNE', 'FrustumPointDAN', "FrustumPointDAN2"]
 
 
 class FrustumNet(nn.Module):
@@ -143,6 +144,74 @@ class FrustumPointDAN(FrustumNet):
         outputs['mask_logits'] = mask_logits
         outputs['mask_logits1'] = mask_logits1
         outputs['mask_logits2'] = mask_logits2
+        outputs['center_reg'] = foreground_coords_mean + delta_coords
+        outputs['center'] = estimations[0] + outputs['center_reg']
+        outputs['heading_scores'] = estimations[1]
+        outputs['heading_residuals_normalized'] = estimations[2]
+        outputs['heading_residuals'] = estimations[2] * (np.pi / self.num_heading_angle_bins)
+        outputs['size_scores'] = estimations[3]
+        size_residuals_normalized = estimations[4].view(-1, self.num_size_templates, 3)
+        outputs['size_residuals_normalized'] = size_residuals_normalized
+        outputs['size_residuals'] = size_residuals_normalized * self.size_templates
+
+        return outputs
+
+
+class FrustumPointDAN2(FrustumNet):
+    def __init__(self, num_classes, num_heading_angle_bins, num_size_templates, num_points_per_object,
+                 size_templates, extra_feature_channels=1, width_multiplier=1):
+        super().__init__(num_classes=num_classes, instance_segmentation_net=InstanceSegmentationPointDAN,
+                         box_estimation_net=BoxEstimationPointDan, num_heading_angle_bins=num_heading_angle_bins,
+                         num_size_templates=num_size_templates, num_points_per_object=num_points_per_object,
+                         size_templates=size_templates, extra_feature_channels=extra_feature_channels,
+                         width_multiplier=width_multiplier)
+        self.center_reg_net = CenterRegressionPointDan(num_classes=num_classes,
+                                                       width_multiplier=width_multiplier[1])
+
+    def forward(self, input):
+
+        if isinstance(input, tuple):
+            inputs, cons, adaptation = input
+        else:
+            inputs = input
+
+        features = inputs['features']
+        one_hot_vectors = inputs['one_hot_vectors']
+        assert one_hot_vectors.dim() == 2
+
+        # foreground/background segmentation
+        mask_logits1, mask_logits2 = self.inst_seg_net(
+            {'features': features, 'one_hot_vectors': one_hot_vectors}, cons, adaptation)
+        mask_logits = (mask_logits1 + mask_logits2) / 2.0
+
+        # mask out Background points
+        foreground_coords, foreground_coords_mean, _ = F.logits_mask(
+            coords=features[:, :3, :], logits=mask_logits,
+            num_points_per_object=self.num_points_per_object
+        )
+        # center regression
+        delta_coords1, delta_coords2 = self.center_reg_net({'coords': foreground_coords,
+                                            'one_hot_vectors': one_hot_vectors}, cons, adaptation)
+        delta_coords = (delta_coords1 + delta_coords2) / 2.0
+        foreground_coords = foreground_coords - delta_coords.unsqueeze(-1)
+        # box estimation
+        estimation1, estimation2 = self.box_est_net({'coords': foreground_coords,
+                                       'one_hot_vectors': one_hot_vectors}, cons, adaptation)
+        estimation = (estimation1 + estimation2) / 2.0
+        estimations = estimation.split([3, self.num_heading_angle_bins,
+                                        self.num_heading_angle_bins,
+                                        self.num_size_templates,
+                                        self.num_size_templates * 3], dim=-1)
+
+        # parse results
+        outputs = dict()
+        outputs['mask_logits'] = mask_logits
+        outputs['mask_logits1'] = mask_logits1
+        outputs['mask_logits2'] = mask_logits2
+        outputs['delta1'] = delta_coords1
+        outputs['delta2'] = delta_coords2
+        outputs['estimation1'] = estimation1
+        outputs['estimation2'] = estimation1
         outputs['center_reg'] = foreground_coords_mean + delta_coords
         outputs['center'] = estimations[0] + outputs['center_reg']
         outputs['heading_scores'] = estimations[1]
