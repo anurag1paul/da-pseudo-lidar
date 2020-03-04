@@ -34,27 +34,34 @@ class CenterRegressionNet(nn.Module):
 
 
 class CenterRegressionPointDanGenerator(nn.Module):
-    blocks = (128, 128, 256)
+    blocks1 = (64, 64)
+    blocks2 = (128, 256)
+
     def __init__(self, num_classes, width_multiplier):
         super().__init__()
         self.in_channels = 3
         self.num_classes = num_classes
 
-        layers, channels = create_mlp_components(in_channels=self.in_channels, out_channels=self.blocks,
+        layers, channels = create_mlp_components(in_channels=self.in_channels, out_channels=self.blocks1,
+                                                 classifier=False, dim=2, width_multiplier=width_multiplier)
+        self.pre = nn.Sequential(*layers)
+
+        self.node = adapt_layer_off()
+
+        layers, channels = create_mlp_components(in_channels=2*channels, out_channels=self.blocks2,
                                                  classifier=False, dim=2, width_multiplier=width_multiplier)
         self.features = nn.Sequential(*layers)
-        self.channels = 2 * channels
-
-        self.node = adapt_layer_off(trans_dim_in=256, trans_dim_out=256, fc_dim=256)
+        self.channels = channels
 
     def forward(self, x, node=False):
         x_loc = x.squeeze(-1)
-        x = self.features(x)
+        x = self.pre(x)
         
         x = x.unsqueeze(3)
         x, node_feat, node_off = self.node(x, x_loc)
         
         x = x.squeeze(-1)
+        x = self.features(x)
         x = x.max(dim=-1, keepdim=False).values
 
         if node:

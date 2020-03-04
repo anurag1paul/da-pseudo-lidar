@@ -13,19 +13,29 @@ class PointnetG(nn.Module):
         super(PointnetG, self).__init__()
         self.trans_net1 = transform_net(3, 3)
 
-        blocks = ((128, 2, None), (256, 1, None), (512, 1, None))
+        blocks1 = ((64, 3, None),)
+        blocks2 = ((256, 1, None), (512, 1, None))
+
         self.in_channels = 3
         self.num_classes = num_classes
 
         layers, channels_point, _ = create_pointnet_components(
-            blocks=blocks, in_channels=self.in_channels, with_se=False, normalize=True, eps=1e-15,
+            blocks=blocks1, in_channels=self.in_channels, with_se=False, normalize=True, eps=1e-15,
             width_multiplier=width_multiplier, voxel_resolution_multiplier=voxel_resolution_multiplier
         )
-        self.channels_point = 2 * channels_point
-        self.features = nn.Sequential(*layers)
+        self.pre = nn.Sequential(*layers)
+
         self.node = adapt_layer_off(trans_dim_in=channels_point, trans_dim_out=channels_point, fc_dim=channels_point)
 
+        layers, channels_point, _ = create_pointnet_components(
+            blocks=blocks1, in_channels=2*channels_point, with_se=False, normalize=True, eps=1e-15,
+            width_multiplier=width_multiplier, voxel_resolution_multiplier=voxel_resolution_multiplier
+        )
+        self.features = nn.Sequential(*layers)
+        self.channels_point = channels_point
+
     def forward(self, x, node=False):
+
         x_loc = x.squeeze(-1)
         transform = self.trans_net1(x)
         x = x.transpose(2, 1)
@@ -33,11 +43,12 @@ class PointnetG(nn.Module):
         x = torch.bmm(x, transform)
 
         x = x.transpose(2, 1)
-        x = self.features(x)
+        x = self.pre(x)
         x = x.unsqueeze(3)
         x, node_feat, node_off = self.node(x, x_loc)
         
         x = x.squeeze(-1)
+        x = x.features(x)
         x = x.max(dim=-1, keepdim=False).values
 
         if node:
