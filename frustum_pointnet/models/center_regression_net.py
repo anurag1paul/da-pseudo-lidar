@@ -84,7 +84,7 @@ class CenterRegressionPointDan(nn.Module):
         one_hot_vectors = inputs['one_hot_vectors']
         assert one_hot_vectors.dim() == 2  # [B, C]
 
-        features, feat_ori, node_idx = self.features(coords, node=True)
+        features, feat_ori, node_idx = self.g(coords, node=True)
 
         batch_size = feat_ori.size(0)
         node_features = None
