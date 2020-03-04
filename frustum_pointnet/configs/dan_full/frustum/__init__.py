@@ -6,7 +6,8 @@ from datasets.kitti import FrustumKitti
 from datasets.vkitti.attributes import vkitti_attributes as vkitti
 from datasets.vkitti import FrustumVkitti
 from meters.kitti import MeterFrustumKitti
-from modules.frustum import FrustumPointNetLoss
+from modules.frustum import FrustumPointNetLoss, FrustumPointDANLoss2, \
+    FrustumDanDiscrepancyLoss
 from evaluate.kitti.frustum.eval import evaluate
 from utils.config import Config, configs
 
@@ -83,7 +84,7 @@ for name, metric in [
 configs.train.metrics = ('acc/iou_3d_class_acc_val', 'acc/iou_3d_acc_val')
 
 # train: criterion
-configs.train.criterion = Config(FrustumPointNetLoss)
+configs.train.criterion = Config(FrustumPointDANLoss2)
 configs.train.criterion.num_heading_angle_bins = configs.data.num_heading_angle_bins
 configs.train.criterion.num_size_templates = configs.data.num_size_templates
 configs.train.criterion.size_templates = configs.data.size_templates
@@ -91,6 +92,9 @@ configs.train.criterion.box_loss_weight = 1.0
 configs.train.criterion.corners_loss_weight = 10.0
 configs.train.criterion.heading_residual_loss_weight = 20.0
 configs.train.criterion.size_residual_loss_weight = 20.0
+
+configs.train.discrepancy = Config(FrustumDanDiscrepancyLoss)
+configs.train.discrepancy.box_loss_weight = 1.0
 
 # train: optimizer
 configs.train.base_lr = 1e-3

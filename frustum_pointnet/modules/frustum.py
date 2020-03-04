@@ -4,8 +4,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 import modules.functional as PF
+from modules.loss import discrepancy_loss
 
-__all__ = ['FrustumPointNetLoss', 'get_box_corners_3d']
+__all__ = ['FrustumPointNetLoss', 'get_box_corners_3d',
+           'FrustumPointDANLoss', 'FrustumPointDANLoss2',
+           'FrustumDanDiscrepancyLoss']
 
 
 class FrustumPointNetLoss(nn.Module):
@@ -170,6 +173,179 @@ class FrustumPointDANLoss(nn.Module):
         )
 
         return loss
+
+
+class FrustumPointDANLoss2(nn.Module):
+    def __init__(self, num_heading_angle_bins, num_size_templates, size_templates, box_loss_weight=1.0,
+                 corners_loss_weight=10.0, heading_residual_loss_weight=20.0, size_residual_loss_weight=20.0):
+        super().__init__()
+        self.box_loss_weight = box_loss_weight
+        self.corners_loss_weight = corners_loss_weight
+        self.heading_residual_loss_weight = heading_residual_loss_weight
+        self.size_residual_loss_weight = size_residual_loss_weight
+
+        self.num_heading_angle_bins = num_heading_angle_bins
+        self.num_size_templates = num_size_templates
+        self.register_buffer('size_templates', size_templates.view(self.num_size_templates, 3))
+        self.register_buffer(
+            'heading_angle_bin_centers', torch.arange(0, 2 * np.pi, 2 * np.pi / self.num_heading_angle_bins)
+        )
+
+    def forward(self, inputs, targets):
+
+        mask_logits1 = inputs['mask_logits1']  # (B, 2, N)
+        mask_logits2 = inputs['mask_logits2']
+
+        center_reg1 = inputs['center_reg1']
+        center_reg2 = inputs['center_reg2'] # (B, 3)
+
+        center1 = inputs['center1']  # (B, 3)
+        center2 = inputs['center2']
+
+        heading_scores1 = inputs['heading_scores1']  # (B, NH)
+        heading_residuals_normalized1 = inputs['heading_residuals_normalized1']  # (B, NH)
+        heading_residuals1 = inputs['heading_residuals1']  # (B, NH)
+        size_scores1 = inputs['size_scores1']  # (B, NS)
+        size_residuals_normalized1 = inputs['size_residuals_normalized1']  # (B, NS, 3)
+        size_residuals1 = inputs['size_residuals1']  # (B, NS, 3)
+
+        heading_scores2 = inputs['heading_scores2']  # (B, NH)
+        heading_residuals_normalized2 = inputs['heading_residuals_normalized2']  # (B, NH)
+        heading_residuals2 = inputs['heading_residuals2']  # (B, NH)
+        size_scores2 = inputs['size_scores2']  # (B, NS)
+        size_residuals_normalized2 = inputs['size_residuals_normalized2']  # (B, NS, 3)
+        size_residuals2 = inputs['size_residuals2']  # (B, NS, 3)
+
+        mask_logits_target = targets['mask_logits']  # (B, N)
+        center_target = targets['center']  # (B, 3)
+        heading_bin_id_target = targets['heading_bin_id']  # (B, )
+        heading_residual_target = targets['heading_residual']  # (B, )
+        size_template_id_target = targets['size_template_id']  # (B, )
+        size_residual_target = targets['size_residual']  # (B, 3)
+
+        batch_size = center1.size(0)
+        batch_id = torch.arange(batch_size, device=center1.device)
+
+        # Basic Classification and Regression losses
+        mask_loss = (F.cross_entropy(mask_logits1, mask_logits_target) +
+                     F.cross_entropy(mask_logits2, mask_logits_target))
+
+        heading_loss = (F.cross_entropy(heading_scores1, heading_bin_id_target) +
+                        F.cross_entropy(heading_scores2, heading_bin_id_target))
+
+        size_loss = (F.cross_entropy(size_scores1, size_template_id_target) +
+                    F.cross_entropy(size_scores2, size_template_id_target))
+
+        center_loss = (PF.huber_loss(torch.norm(center_target - center1, dim=-1), delta=2.0)
+                       + PF.huber_loss(torch.norm(center_target - center2, dim=-1), delta=2.0))
+
+        center_reg_loss = (PF.huber_loss(torch.norm(center_target - center_reg1, dim=-1), delta=1.0) +
+                        PF.huber_loss(torch.norm(center_target - center_reg2, dim=-1), delta=1.0))
+
+        # Refinement losses for size/heading
+        heading_residuals_normalized1 = heading_residuals_normalized1[batch_id, heading_bin_id_target]  # (B, )
+        heading_residuals_normalized2 = heading_residuals_normalized2[batch_id, heading_bin_id_target]
+        heading_residual_normalized_target = heading_residual_target / (np.pi / self.num_heading_angle_bins)
+        heading_residual_normalized_loss = (PF.huber_loss(
+            heading_residuals_normalized1 - heading_residual_normalized_target, delta=1.0
+        ) + PF.huber_loss(
+            heading_residuals_normalized2 - heading_residual_normalized_target, delta=1.0
+        ))
+
+        size_residuals_normalized1 = size_residuals_normalized1[batch_id, size_template_id_target]  # (B, 3)
+        size_residuals_normalized2 = size_residuals_normalized2[batch_id, size_template_id_target]
+
+        size_residual_normalized_target = size_residual_target / self.size_templates[size_template_id_target]
+        size_residual_normalized_loss = (PF.huber_loss(
+            torch.norm(size_residual_normalized_target - size_residuals_normalized1, dim=-1), delta=1.0
+        ) + PF.huber_loss(
+            torch.norm(size_residual_normalized_target - size_residuals_normalized2, dim=-1), delta=1.0
+        ))
+
+        # Bounding box losses
+        heading1 = (heading_residuals1[batch_id, heading_bin_id_target]
+                   + self.heading_angle_bin_centers[heading_bin_id_target])  # (B, )
+        heading2 = (heading_residuals2[batch_id, heading_bin_id_target]
+                   + self.heading_angle_bin_centers[heading_bin_id_target])  # (B, )
+
+        # Warning: in origin code, size_residuals are added twice (issue #43 and #49 in charlesq34/frustum-pointnets)
+        size1 = (size_residuals1[batch_id, size_template_id_target]
+                + self.size_templates[size_template_id_target])# (B, 3)
+        size2 = (size_residuals2[batch_id, size_template_id_target]
+                + self.size_templates[size_template_id_target])# (B, 3)
+
+        corners1 = get_box_corners_3d(centers=center1, headings=heading1, sizes=size1, with_flip=False)  # (B, 3, 8)
+        corners2 = get_box_corners_3d(centers=center2, headings=heading2, sizes=size2, with_flip=False)
+
+        heading_target = self.heading_angle_bin_centers[heading_bin_id_target] + heading_residual_target  # (B, )
+        size_target = self.size_templates[size_template_id_target] + size_residual_target  # (B, 3)
+        corners_target, corners_target_flip = get_box_corners_3d(centers=center_target, headings=heading_target,
+                                                                 sizes=size_target, with_flip=True)  # (B, 3, 8)
+        corners_loss = (PF.huber_loss(torch.min(
+            torch.norm(corners1 - corners_target, dim=1), torch.norm(corners1 - corners_target_flip, dim=1)
+        ), delta=1.0) +
+        PF.huber_loss(torch.min(
+            torch.norm(corners2 - corners_target, dim=1), torch.norm(corners2 - corners_target_flip, dim=1)
+        ), delta=1.0))
+
+        # Summing up
+        loss = mask_loss + self.box_loss_weight * (
+                center_loss + center_reg_loss + heading_loss + size_loss
+                + self.heading_residual_loss_weight * heading_residual_normalized_loss
+                + self.size_residual_loss_weight * size_residual_normalized_loss
+                + self.corners_loss_weight * corners_loss
+        )
+
+        return loss
+
+
+class FrustumDanDiscrepancyLoss(nn.Module):
+    def __init__(self, box_loss_weight=1.0):
+        super().__init__()
+        self.box_loss_weight = box_loss_weight
+
+    def forward(self, inputs):
+
+        mask_logits1 = inputs['mask_logits1']  # (B, 2, N)
+        mask_logits2 = inputs['mask_logits2']
+
+        center_reg1 = inputs['center_reg1']
+        center_reg2 = inputs['center_reg2'] # (B, 3)
+
+        center1 = inputs['center1']  # (B, 3)
+        center2 = inputs['center2']
+
+        heading_scores1 = inputs['heading_scores1']  # (B, NH)
+        heading_residuals_normalized1 = inputs['heading_residuals_normalized1']  # (B, NH)
+        heading_residuals1 = inputs['heading_residuals1']  # (B, NH)
+        size_scores1 = inputs['size_scores1']  # (B, NS)
+        size_residuals_normalized1 = inputs['size_residuals_normalized1']  # (B, NS, 3)
+        size_residuals1 = inputs['size_residuals1']  # (B, NS, 3)
+
+        heading_scores2 = inputs['heading_scores2']  # (B, NH)
+        heading_residuals_normalized2 = inputs['heading_residuals_normalized2']  # (B, NH)
+        heading_residuals2 = inputs['heading_residuals2']  # (B, NH)
+        size_scores2 = inputs['size_scores2']  # (B, NS)
+        size_residuals_normalized2 = inputs['size_residuals_normalized2']  # (B, NS, 3)
+        size_residuals2 = inputs['size_residuals2']  # (B, NS, 3)
+
+        batch_size = center1.size(0)
+        batch_id = torch.arange(batch_size, device=center1.device)
+
+        # Basic Classification and Regression losses
+        mask_loss = discrepancy_loss(mask_logits1, mask_logits2)
+        heading_loss = discrepancy_loss(heading_scores1, heading_scores2)
+        size_loss = discrepancy_loss(size_scores1, size_scores2)
+
+        center_loss = PF.huber_loss(torch.norm(center2 - center1, dim=-1), delta=2.0)
+        center_reg_loss = PF.huber_loss(torch.norm(center_reg2 - center_reg1, dim=-1), delta=1.0)
+
+        # Summing up
+        loss = mask_loss + self.box_loss_weight * (
+                center_loss + center_reg_loss + heading_loss + size_loss)
+
+        return loss
+
 
 def get_box_corners_3d(centers, headings, sizes, with_flip=False):
     """

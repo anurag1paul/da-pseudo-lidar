@@ -7,7 +7,6 @@ import shutil
 from tqdm import trange
 
 from modules import mmd
-from modules.loss import discrepancy_loss
 from utils.common import loop_iterable
 
 
@@ -118,7 +117,7 @@ def main():
             writer.add_scalar('lr_dis', lr, epoch)
 
     # train kernel
-    def train(model, source_loader, target_loader, criterion, optimizer_g,
+    def train(model, source_loader, target_loader, criterion, discrepancy, optimizer_g,
               optimizer_cls, optimizer_dis, scheduler_g, scheduler_cls,
               current_step, writer, cons):
 
@@ -163,12 +162,7 @@ def main():
             loss_s = criterion(outputs, targets)
 
             # Adversarial loss
-            loss_adv = - 1 * (discrepancy_loss(outputs_target["mask_logits1"],
-                                               outputs_target["mask_logits2"])
-                              + discrepancy_loss(outputs_target["delta1"],
-                                                 outputs_target["delta2"])
-                              + discrepancy_loss(outputs_target["estimation1"],
-                                                 outputs_target["estimation2"]))
+            loss_adv = - 1 * discrepancy(outputs_target)
 
             loss = loss_s + loss_adv
             loss.backward()
@@ -291,6 +285,8 @@ def main():
         model = torch.nn.DataParallel(model)
     model = model.to(configs.device)
     criterion = configs.train.criterion().to(configs.device)
+    discrepancy = configs.train.discrepancy().to(configs.device)
+
     # params
     gen_params = [{'params': v} for k, v in
                   model.module.inst_seg_net.g.named_parameters()
@@ -390,7 +386,8 @@ def main():
                 f'\n==> training epoch {current_epoch}/{configs.train.num_epochs}')
             train(model, source_loader=source_loaders['train'],
                   target_loader=target_loaders['train'],
-                  criterion=criterion, optimizer_g=optimizer_g,
+                  criterion=criterion, discrepancy=discrepancy,
+                  optimizer_g=optimizer_g,
                   optimizer_cls=optimizer_cls,
                   optimizer_dis=optimizer_dis, scheduler_g=scheduler_g,
                   scheduler_cls=scheduler_c,

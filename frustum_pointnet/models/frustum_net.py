@@ -197,29 +197,64 @@ class FrustumPointDAN2(FrustumNet):
         # box estimation
         estimation1, estimation2 = self.box_est_net({'coords': foreground_coords,
                                        'one_hot_vectors': one_hot_vectors}, cons, adaptation)
+
         estimation = (estimation1 + estimation2) / 2.0
+
         estimations = estimation.split([3, self.num_heading_angle_bins,
                                         self.num_heading_angle_bins,
                                         self.num_size_templates,
                                         self.num_size_templates * 3], dim=-1)
+
+        estimations1 = estimation1.split([3, self.num_heading_angle_bins,
+                                        self.num_heading_angle_bins,
+                                        self.num_size_templates,
+                                        self.num_size_templates * 3], dim=-1)
+
+        estimations2 = estimation2.split([3, self.num_heading_angle_bins,
+                                        self.num_heading_angle_bins,
+                                        self.num_size_templates,
+                                        self.num_size_templates * 3], dim=-1)
+
 
         # parse results
         outputs = dict()
         outputs['mask_logits'] = mask_logits
         outputs['mask_logits1'] = mask_logits1
         outputs['mask_logits2'] = mask_logits2
-        outputs['delta1'] = delta_coords1
-        outputs['delta2'] = delta_coords2
-        outputs['estimation1'] = estimation1
-        outputs['estimation2'] = estimation1
+
         outputs['center_reg'] = foreground_coords_mean + delta_coords
+        outputs['center_reg1'] = foreground_coords_mean + delta_coords1
+        outputs['center_reg2'] = foreground_coords_mean + delta_coords2
+
         outputs['center'] = estimations[0] + outputs['center_reg']
+        outputs['center1'] = estimations1[0] + outputs['center_reg1']
+        outputs['center2'] = estimations2[0] + outputs['center_reg2']
+
         outputs['heading_scores'] = estimations[1]
         outputs['heading_residuals_normalized'] = estimations[2]
         outputs['heading_residuals'] = estimations[2] * (np.pi / self.num_heading_angle_bins)
         outputs['size_scores'] = estimations[3]
+
+        outputs['heading_scores1'] = estimations1[1]
+        outputs['heading_residuals_normalized1'] = estimations1[2]
+        outputs['heading_residuals1'] = estimations1[2] * (np.pi / self.num_heading_angle_bins)
+        outputs['size_scores1'] = estimations1[3]
+
+        outputs['heading_scores2'] = estimations2[1]
+        outputs['heading_residuals_normalized2'] = estimations2[2]
+        outputs['heading_residuals2'] = estimations2[2] * (np.pi / self.num_heading_angle_bins)
+        outputs['size_scores2'] = estimations2[3]
+
         size_residuals_normalized = estimations[4].view(-1, self.num_size_templates, 3)
         outputs['size_residuals_normalized'] = size_residuals_normalized
         outputs['size_residuals'] = size_residuals_normalized * self.size_templates
+
+        size_residuals_normalized1 = estimations1[4].view(-1, self.num_size_templates, 3)
+        outputs['size_residuals_normalized1'] = size_residuals_normalized1
+        outputs['size_residuals1'] = size_residuals_normalized1 * self.size_templates
+
+        size_residuals_normalized2 = estimations2[4].view(-1, self.num_size_templates, 3)
+        outputs['size_residuals_normalized2'] = size_residuals_normalized2
+        outputs['size_residuals2'] = size_residuals_normalized2 * self.size_templates
 
         return outputs
