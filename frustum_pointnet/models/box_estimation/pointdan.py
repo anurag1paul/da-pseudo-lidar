@@ -34,7 +34,7 @@ class PointnetG(nn.Module):
 
         x = x.transpose(2, 1)
         x = self.features(x)
-
+        x = x.unsqueeze(3)
         x, node_feat, node_off = self.node(x, x_loc)
 
         x = x.max(dim=-1, keepdim=False).values

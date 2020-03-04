@@ -50,6 +50,7 @@ class CenterRegressionPointDanGenerator(nn.Module):
     def forward(self, x, node=False):
         x_loc = x.squeeze(-1)
         x = self.features(x)
+        x = x.unsqueeze(3)
         x, node_feat, node_off = self.node(x, x_loc)
 
         x = x.max(dim=-1, keepdim=False).values

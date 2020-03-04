@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 
-def farthest_point_sample(xyz, npoint):
+def farthest_point_sample(xyz, npoint, channels=3):
     """
     Input:
         xyz: pointcloud data, [B, C, N]
@@ -18,7 +18,7 @@ def farthest_point_sample(xyz, npoint):
     batch_indices = torch.arange(B, dtype=torch.long).to(device)
     for i in range(npoint):
         centroids[:, i] = farthest
-        centroid = xyz[batch_indices, :, farthest].view(B, 4, 1)
+        centroid = xyz[batch_indices, :, farthest].view(B, channels, 1)
         dist = torch.sum((xyz - centroid) ** 2, 1)
         mask = dist < distance
         distance[mask] = dist[mask]

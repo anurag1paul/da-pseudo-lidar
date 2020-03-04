@@ -49,7 +49,7 @@ class PointnetG(nn.Module):
     def __init__(self, in_channels):
         super(PointnetG, self).__init__()
         self.in_channels= in_channels
-        self.trans_net1 = transform_net(4, 4)
+        self.trans_net1 = transform_net(in_channels, in_channels)
         self.trans_net2 = transform_net(64, 64)
 
         point_blocks = ((64, 3, None),)
@@ -61,7 +61,7 @@ class PointnetG(nn.Module):
         self.point_features = nn.Sequential(*layers)
 
         # SA Node Module
-        self.conv3 = adapt_layer_off()  # (64->128)
+        self.conv3 = adapt_layer_off(offset_dim=in_channels)  # (64->128)
         layers, channels_cloud, _ = create_pointnet_components(
             blocks=cloud_blocks, in_channels=2*channels_point, with_se=False,
         )

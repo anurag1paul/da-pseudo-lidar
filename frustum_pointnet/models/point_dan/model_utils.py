@@ -84,7 +84,7 @@ class transform_net(nn.Module):
 
 
 class adapt_layer_off(nn.Module):
-    def __init__(self, num_node=64, offset_dim=4, trans_dim_in=64,
+    def __init__(self, num_node=64, offset_dim=3, trans_dim_in=64,
                  trans_dim_out=64, fc_dim=64):
         super(adapt_layer_off, self).__init__()
         self.num_node = num_node
@@ -98,7 +98,8 @@ class adapt_layer_off(nn.Module):
     def forward(self, input_fea, input_loc):
         # Initialize node
         fpoint_idx = point_utils.farthest_point_sample(input_loc,
-                                                       self.num_node)  # (B, num_node)
+                                                       self.num_node,
+                                                       self.offset_dim)  # (B, num_node)
         fpoint_loc = point_utils.index_points(input_loc,
                                               fpoint_idx)  # (B, 3, num_node)
         fpoint_fea = point_utils.index_points(input_fea,
