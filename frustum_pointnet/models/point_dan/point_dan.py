@@ -149,17 +149,18 @@ class InstanceSegmentationPointDAN(nn.Module):
         if node_vis:
             return node_idx
 
+        node_features = None
         if node_adaptation_s:
             # source domain sa node feat
             feat_node = feat_ori.view(batch_size, -1)
             feat_node_s = self.attention_s(feat_node.unsqueeze(2).unsqueeze(3))
-            return feat_node_s
+            node_features =  feat_node_s
 
         elif node_adaptation_t:
             # target domain sa node feat
             feat_node = feat_ori.view(batch_size, -1)
             feat_node_t = self.attention_t(feat_node.unsqueeze(2).unsqueeze(3))
-            return feat_node_t
+            node_features =  feat_node_t
 
         if adaptation:
             cloud_feat = grad_reverse(cloud_feat, constant)
@@ -170,4 +171,7 @@ class InstanceSegmentationPointDAN(nn.Module):
         y1 = self.c1(cls_input)
         y2 = self.c2(cls_input)
 
-        return y1, y2
+        if node_adaptation_s or node_adaptation_t:
+            return y1, y2, node_features
+        else:
+            return y1, y2

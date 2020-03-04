@@ -117,7 +117,8 @@ def main():
             writer.add_scalar('lr_dis', lr, epoch)
 
     # train kernel
-    def train(model, source_loader, target_loader, criterion, discrepancy, optimizer_g,
+    def train(model, source_loader, target_loader, criterion, discrepancy,
+              optimizer_g,
               optimizer_cls, optimizer_dis, scheduler_g, scheduler_cls,
               current_step, writer, cons):
 
@@ -172,21 +173,20 @@ def main():
             optimizer_cls.zero_grad()
 
             # Local Alignment
-            feat_node_s = model.module.inst_seg_net(
-                {'features': inputs['features'],
-                 'one_hot_vectors': inputs[
-                     'one_hot_vectors']},
-                node_adaptation_s=True)
+            feat_node_s = model(inputs, node_adaptation_s=True)
 
-            feat_node_t = model.module.inst_seg_net(
-                {'features': inputs_t['features'],
-                 'one_hot_vectors': inputs_t[
-                     'one_hot_vectors']},
-                node_adaptation_t=True)
+            feat_node_t = model(inputs_t, node_adaptation_t=True)
 
             sigma_list = [0.01, 0.1, 1, 10, 100]
-            loss_node_adv = 1 * mmd.mix_rbf_mmd2(feat_node_s, feat_node_t,
-                                                 sigma_list)
+            loss_node_adv = (mmd.mix_rbf_mmd2(feat_node_s["seg_mmd_feat"],
+                                              feat_node_t["seg_mmd_feat"],
+                                              sigma_list) +
+                             mmd.mix_rbf_mmd2(feat_node_s["cen_mmd_feat"],
+                                              feat_node_t["cen_mmd_feat"],
+                                              sigma_list) +
+                             mmd.mix_rbf_mmd2(feat_node_s["box_mmd_feat"],
+                                              feat_node_t["box_mmd_feat"],
+                                              sigma_list))
             loss = loss_node_adv
 
             loss.backward()
@@ -291,9 +291,14 @@ def main():
     gen_params = [{'params': v} for k, v in
                   model.module.inst_seg_net.g.named_parameters()
                   if 'pred_offset' not in k]
-    
-    gen_params.extend([{'params': model.module.center_reg_net.features.parameters()},
-                       {'params': model.module.box_est_net.g.parameters()}])
+
+    gen_params.extend([{'params': v} for k, v in
+                       model.module.center_reg_net.g.named_parameters()
+                       if 'pred_offset' not in k])
+
+    gen_params.extend([{'params': v} for k, v in
+                       model.module.box_est_net.g.named_parameters()
+                       if 'pred_offset' not in k])
 
     cls_params = [{'params': model.module.inst_seg_net.c1.parameters()},
                   {'params': model.module.inst_seg_net.c2.parameters()},
@@ -302,11 +307,11 @@ def main():
                   {'params': model.module.box_est_net.c1.parameters()},
                   {'params': model.module.box_est_net.c2.parameters()}]
 
-    dis_params = [{'params': model.module.inst_seg_net.g.parameters()},
-                  {'params': model.module.center_reg_net.features.parameters()},
+    dis_params = [{'params': model.module.inst_seg_net.parameters()},
+                  {'params': model.module.center_reg_net.parameters()},
                   {'params': model.module.box_est_net.g.parameters()},
-                  {'params': model.module.inst_seg_net.attention_s.parameters()},
-                  {'params': model.module.inst_seg_net.attention_t.parameters()}]
+                  {'params': model.module.box_est_net.attention_s.parameters()},
+                  {'params': model.module.box_est_net.attention_t.parameters()}]
 
     optimizer_g = configs.train.optimizer_g(gen_params)
     optimizer_cls = configs.train.optimizer_cls(cls_params)
