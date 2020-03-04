@@ -165,8 +165,7 @@ class FrustumPointDAN2(FrustumNet):
                          num_size_templates=num_size_templates, num_points_per_object=num_points_per_object,
                          size_templates=size_templates, extra_feature_channels=extra_feature_channels,
                          width_multiplier=width_multiplier)
-        self.center_reg_net = CenterRegressionPointDan(num_classes=num_classes,
-                                                       width_multiplier=width_multiplier[1])
+        self.center_reg_net = CenterRegressionPointDan(num_classes=num_classes, width_multiplier=width_multiplier)
 
     def forward(self, input):
 
@@ -174,6 +173,8 @@ class FrustumPointDAN2(FrustumNet):
             inputs, cons, adaptation = input
         else:
             inputs = input
+            cons = 1
+            adaptation = False
 
         features = inputs['features']
         one_hot_vectors = inputs['one_hot_vectors']
