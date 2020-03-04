@@ -172,7 +172,7 @@ class FrustumPointDAN2(nn.Module):
         self.inst_seg_net = InstanceSegmentationPointDAN(num_classes=num_classes,
                                                       extra_feature_channels=extra_feature_channels,
                                                       width_multiplier=width_multiplier[0])
-        self.center_reg_net = CenterRegressionPointDan(num_classes=num_classes, width_multiplier=width_multiplier)
+        self.center_reg_net = CenterRegressionPointDan(num_classes=num_classes, width_multiplier=width_multiplier[1])
         self.box_est_net = BoxEstimationPointDan(num_classes=num_classes, num_heading_angle_bins=num_heading_angle_bins,
                                               num_size_templates=num_size_templates,
                                               width_multiplier=width_multiplier[2])

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from models.point_dan.point_dan import transform_net, grad_reverse, \
-    adapt_layer_off
+    adapt_layer_off, CALayer
 from models.utils import create_pointnet_components, create_mlp_components
 
 __all__ = ['BoxEstimationPointDan']
@@ -57,6 +57,9 @@ class BoxEstimationPointDan(nn.Module):
         self.g = PointnetG(num_classes)
 
         channels_point = self.g.channels_point
+
+        self.attention_s = CALayer(64 * 64)
+        self.attention_t = CALayer(64 * 64)
 
         layers, _ = create_mlp_components(
             in_channels=channels_point + num_classes,
