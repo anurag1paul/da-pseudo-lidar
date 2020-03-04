@@ -10,7 +10,7 @@ __all__ = ['BoxEstimationPointDan']
 class PointnetG(nn.Module):
     def __init__(self, num_classes, width_multiplier=1, voxel_resolution_multiplier=1):
         super(PointnetG, self).__init__()
-        self.trans_net1 = transform_net(4, 4)
+        self.trans_net1 = transform_net(3, 3)
 
         blocks = ((128, 2, None), (256, 1, None), (512, 1, None))
         self.in_channels = 3
