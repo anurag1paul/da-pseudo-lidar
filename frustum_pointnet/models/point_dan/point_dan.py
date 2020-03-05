@@ -30,17 +30,20 @@ class CALayer(nn.Module):
 
 # Grad Reversal
 class GradReverse(torch.autograd.Function):
-    
+
+    lambd = 1.0
+
     @staticmethod
     def forward(ctx, x):
         return x.view_as(x)
     
     @staticmethod
     def backward(ctx, grad_output):
-        return grad_output * -1.0
+        return grad_output * - GradReverse.lambd
 
 
 def grad_reverse(x, lambd=1.0):
+    GradReverse.lambd = lambd
     return GradReverse.apply(x)
 
 

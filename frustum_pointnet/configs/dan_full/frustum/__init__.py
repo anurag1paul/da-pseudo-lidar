@@ -96,6 +96,8 @@ configs.train.criterion.size_residual_loss_weight = 20.0
 configs.train.discrepancy = Config(FrustumDanDiscrepancyLoss)
 configs.train.discrepancy.box_loss_weight = 1.0
 
+configs.train.gen_num_train = 2
+
 # train: optimizer
 configs.train.base_lr = 1e-4
 configs.train.optimizer_g = Config(optim.Adam)

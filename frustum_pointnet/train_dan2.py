@@ -156,6 +156,10 @@ def main():
             else:
                 targets = targets.to(configs.device, non_blocking=True)
 
+            optimizer_g.zero_grad()
+            optimizer_cls.zero_grad()
+            optimizer_dis.zero_grad()
+
             outputs = model(inputs)
 
             outputs_target = model(inputs_t, cons, True)
@@ -171,6 +175,14 @@ def main():
             optimizer_cls.step()
             optimizer_g.zero_grad()
             optimizer_cls.zero_grad()
+
+            for i in range(configs.train.gen_num_train):
+                optimizer_g.zero_grad()
+                loss = 0
+                outputs_target = model(inputs_t, cons, True)
+                loss -= discrepancy(outputs_target)
+                loss.backward()
+                optimizer_g.step()
 
             # Local Alignment
             feat_node_s = model(inputs, adaptation_s=True)
