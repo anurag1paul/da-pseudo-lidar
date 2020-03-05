@@ -97,12 +97,15 @@ configs.train.discrepancy = Config(FrustumDanDiscrepancyLoss)
 configs.train.discrepancy.box_loss_weight = 1.0
 
 # train: optimizer
-configs.train.base_lr = 1e-3
+configs.train.base_lr = 1e-4
 configs.train.optimizer_g = Config(optim.Adam)
+configs.train.optimizer_g.weight_decay = 5e-4
 configs.train.optimizer_g.lr = configs.train.base_lr
 
 configs.train.optimizer_cls = Config(optim.Adam)
 configs.train.optimizer_cls.lr = 2 * configs.train.base_lr
+configs.train.optimizer_cls.weight_decay = 5e-4
 
 configs.train.optimizer_dis = Config(optim.Adam)
 configs.train.optimizer_dis.lr = configs.train.base_lr
+configs.train.optimizer_dis.weight_decay = 5e-4

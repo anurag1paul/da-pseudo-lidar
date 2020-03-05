@@ -163,7 +163,7 @@ def main():
             loss_s = criterion(outputs, targets)
 
             # Adversarial loss
-            loss_adv = - 1 * discrepancy(outputs_target)
+            loss_adv = -1 * discrepancy(outputs_target)
 
             loss = loss_s + loss_adv
             loss.backward()
