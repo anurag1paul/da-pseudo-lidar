@@ -307,8 +307,12 @@ def main():
                   {'params': model.module.box_est_net.c1.parameters()},
                   {'params': model.module.box_est_net.c2.parameters()}]
 
-    dis_params = [{'params': model.module.inst_seg_net.parameters()},
-                  {'params': model.module.center_reg_net.parameters()},
+    dis_params = [{'params': model.module.inst_seg_net.g.parameters()},
+                  {'params': model.module.inst_seg_net.attention_s.parameters()},
+                  {'params': model.module.inst_seg_net.attention_t.parameters()},
+                  {'params': model.module.center_reg_net.g.parameters()},
+                  {'params': model.module.center_reg_net.attention_s.parameters()},
+                  {'params': model.module.center_reg_net.attention_t.parameters()},
                   {'params': model.module.box_est_net.g.parameters()},
                   {'params': model.module.box_est_net.attention_s.parameters()},
                   {'params': model.module.box_est_net.attention_t.parameters()}]
