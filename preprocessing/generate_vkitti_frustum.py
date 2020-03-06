@@ -47,16 +47,17 @@ def demo(path):
     from vkitti.viz_util import draw_lidar, draw_lidar_simple, draw_gt_boxes3d
     dataset = vkitti_object(path, "train", "Scene01", "15-deg-left")
     data_idx = 0
+    cam_idx = 1
 
     # Load data from dataset
-    objects = dataset.get_label_objects(data_idx)
+    objects = dataset.get_label_objects(data_idx, cam_idx)
     objects[0].print_object()
-    img = dataset.get_image(data_idx)
+    img = dataset.get_image(data_idx, cam_idx)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     img_height, img_width, img_channel = img.shape
     print(('Image shape: ', img.shape))
-    pc_velo = dataset.get_lidar(data_idx)[:,0:3]
-    calib = dataset.get_calibration(data_idx)
+    pc_velo = dataset.get_lidar(data_idx, cam_idx)[:,0:3]
+    calib = dataset.get_calibration(data_idx, cam_idx)
 
     ## Draw lidar in rect camera coord
     #print(' -------- LiDAR points in rect camera coordination --------')

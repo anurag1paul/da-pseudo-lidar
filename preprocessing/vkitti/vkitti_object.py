@@ -34,69 +34,72 @@ class vkitti_object(object):
         assert sub_scene in sub_scenes
 
         self.sub_scene_dir = os.path.join(self.root_dir, scene, sub_scene)
-        self.image_dir = os.path.join(self.sub_scene_dir, "frames", "rgb",
-                                      "Camera_0")
-        self.depth_dir = os.path.join(self.sub_scene_dir, "frames", "depth",
-                                      "Camera_0")
-
+        self.image_dir = os.path.join(self.sub_scene_dir, "frames", "rgb")
+        self.depth_dir = os.path.join(self.sub_scene_dir, "frames", "depth")
+        self.cameras = ["Camera_0", "Camera_1"]
         self.intrinsic_file = os.path.join(self.sub_scene_dir, 'intrinsic.txt')
         self.extrinsic_file = os.path.join(self.sub_scene_dir, "extrinsic.txt")
 
-        self.intrinsics = self._process_file(self.intrinsic_file)
-        self.extrinsics = self._process_file(self.extrinsic_file)
+        self.intrinsics = [self._process_file(self.intrinsic_file, 0),
+                           self._process_file(self.intrinsic_file, 1)]
+
+        self.extrinsics = [self._process_file(self.extrinsic_file, 0),
+                           self._process_file(self.extrinsic_file, 1)]
 
         self.label_file_2d = os.path.join(self.sub_scene_dir, 'bbox.txt')
         self.label_file_3d = os.path.join(self.sub_scene_dir, 'pose.txt')
         self.label_object_type = os.path.join(self.sub_scene_dir, 'info.txt')
-        self.labels = self._get_label_data()
+        self.labels = [self._get_label_data(0), self._get_label_data(1)]
 
-        path, dirs, files = next(os.walk(self.image_dir))
+        path, dirs, files = next(os.walk(os.path.join(self.image_dir, self.cameras[0])))
         self.num_samples = len(files)
 
     def __len__(self):
         return self.num_samples
 
     @staticmethod
-    def _process_file(file):
+    def _process_file(file, cam_idx):
         params = pd.read_csv(file, sep=" ", header=0)
-        return params[params["cameraID"] == 0]
+        return params[params["cameraID"] == cam_idx]
 
-    def get_image(self, idx):
+    def get_image(self, idx, cam_idx):
         assert (idx < self.num_samples)
-        img_filename = os.path.join(self.image_dir,
-                                    "rgb_{:05d}.jpg".format(idx))
+        image_dir = os.path.join(self.image_dir, self.cameras[cam_idx])
+        img_filename = os.path.join(image_dir, "rgb_{:05d}.jpg".format(idx))
         return utils.load_image(img_filename)
 
-    def get_calibration(self, idx):
+    def get_calibration(self, idx, cam_idx):
         assert (idx < self.num_samples)
-        return utils.Calibration(self.intrinsics.iloc[idx],
-                                 self.extrinsics.iloc[idx])
+        return utils.Calibration(self.intrinsics[cam_idx].iloc[idx],
+                                 self.extrinsics[cam_idx].iloc[idx])
 
-    def get_label_objects(self, idx):
+    def get_label_objects(self, idx, cam_idx):
         assert (idx < self.num_samples)
-        label_data = self.labels[self.labels["frame"] == idx]
+        labels = self.labels[cam_idx]
+        label_data = labels[labels["frame"] == idx]
         objects = [utils.Object3d(row) for idx, row in label_data.iterrows()]
         return objects
 
-    def get_depth_map(self, idx):
+    def get_depth_map(self, idx, cam_idx):
         assert (idx < self.num_samples)
-        filename = os.path.join(self.depth_dir, "depth_{:05d}.png".format(idx))
+        depth_dir = os.path.join(self.depth_dir, self.cameras[cam_idx])
+        filename = os.path.join(depth_dir, "depth_{:05d}.png".format(idx))
         return utils.load_depth(filename)
 
-    def _get_label_data(self):
+    def _get_label_data(self, cam_idx):
         bbox = pd.read_csv(self.label_file_2d, sep=" ", header=0)
         obj = pd.read_csv(self.label_file_3d, sep=" ", header=0)
         data = pd.merge(bbox, obj, on=["frame", "cameraID", "trackID"],
                         how="inner")
-        data = data[data["cameraID"] == 0]
+        data = data[data["cameraID"] == cam_idx]
 
         info = pd.read_csv(self.label_object_type, sep=" ", header=0)
         data = pd.merge(data, info, on="trackID")
         return data
 
-    def get_lidar(self, idx):
-        calib = self.get_calibration(idx)
-        depth = self.get_depth_map(idx)
+    def get_lidar(self, idx, cam_idx):
+        calib = self.get_calibration(idx, cam_idx)
+        depth = self.get_depth_map(idx, cam_idx)
         velo = project_depth_to_points(calib, depth)
         velo = np.concatenate([velo, np.ones((velo.shape[0], 1))], 1)
         points = 0.25   # percentage of points to be rejected
