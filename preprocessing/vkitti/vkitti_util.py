@@ -88,8 +88,10 @@ class Calibration(object):
         self.P = self.process_intrinsic(intrinsic_values)
 
         # Rotation from reference camera coord to rect camera coord
-        self.extrinsics = self.process_extrinsic(extrinsic_values)
-        self.R0 = np.linalg.inv(self.extrinsics[:3, :3])
+        # self.extrinsics = self.process_extrinsic(extrinsic_values)
+        # self.R0 = np.linalg.inv(self.extrinsics[:3, :3])
+        R0= "9.999239000000e-01 9.837760000000e-03 -7.445048000000e-03 -9.869795000000e-03 9.999421000000e-01 -4.278459000000e-03 7.402527000000e-03 4.351614000000e-03 9.999631000000e-01"
+        self.R0 = np.reshape(np.array([float(x) for x in R0.split()]), [3,3])
 
         velo = "7.533745000000e-03 -9.999714000000e-01 -6.166020000000e-04 -4.069766000000e-03 1.480249000000e-02 7.280733000000e-04 -9.998902000000e-01 -7.631618000000e-02 9.998621000000e-01 7.523790000000e-03 1.480755000000e-02 -2.717806000000e-01"
         self.V2C = np.array([float(x) for x in velo.split()])
@@ -361,19 +363,20 @@ def draw_projected_box3d(image, qs, color=(255, 255, 255), thickness=2):
           |/         |/
           6 -------- 7
     """
-    qs = qs.astype(np.int32)
-    for k in range(0, 4):
-        # Ref: http://docs.enthought.com/mayavi/mayavi/auto/mlab_helper_functions.html
-        i, j = k, (k + 1) % 4
-        # use LINE_AA for opencv3
-        cv2.line(image, (qs[i, 0], qs[i, 1]), (qs[j, 0], qs[j, 1]), color,
-                 thickness, cv2.LINE_AA)
+    if qs is not None:
+        qs = qs.astype(np.int32)
+        for k in range(0, 4):
+            # Ref: http://docs.enthought.com/mayavi/mayavi/auto/mlab_helper_functions.html
+            i, j = k, (k + 1) % 4
+            # use LINE_AA for opencv3
+            cv2.line(image, (qs[i, 0], qs[i, 1]), (qs[j, 0], qs[j, 1]), color,
+                     thickness, cv2.LINE_AA)
 
-        i, j = k + 4, (k + 1) % 4 + 4
-        cv2.line(image, (qs[i, 0], qs[i, 1]), (qs[j, 0], qs[j, 1]), color,
-                 thickness, cv2.LINE_AA)
+            i, j = k + 4, (k + 1) % 4 + 4
+            cv2.line(image, (qs[i, 0], qs[i, 1]), (qs[j, 0], qs[j, 1]), color,
+                     thickness, cv2.LINE_AA)
 
-        i, j = k, k + 4
-        cv2.line(image, (qs[i, 0], qs[i, 1]), (qs[j, 0], qs[j, 1]), color,
-                 thickness, cv2.LINE_AA)
+            i, j = k, k + 4
+            cv2.line(image, (qs[i, 0], qs[i, 1]), (qs[j, 0], qs[j, 1]), color,
+                     thickness, cv2.LINE_AA)
     return image

@@ -176,14 +176,6 @@ def main():
             optimizer_g.zero_grad()
             optimizer_cls.zero_grad()
 
-            for i in range(configs.train.gen_num_train):
-                optimizer_g.zero_grad()
-                loss = 0
-                outputs_target = model(inputs_t, cons, True)
-                loss -= discrepancy(outputs_target)
-                loss.backward()
-                optimizer_g.step()
-
             # Local Alignment
             feat_node_s = model(inputs, adaptation_s=True)
 

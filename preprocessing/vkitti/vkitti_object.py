@@ -16,8 +16,8 @@ import vkitti.vkitti_util as utils
 
 raw_input = input  # Python 3
 
-scenes_dict = {"train": ["Scene01", "Scene06", "Scene18"],
-               "val": ["Scene02"]}
+scenes_dict = {"train": ["Scene01", "Scene02", "Scene06", "Scene18"],
+               "val": ["Scene20"]}
 sub_scenes = ["15-deg-left", "30-deg-left", "15-deg-right", "30-deg-right",
               "clone", "morning", "rain", "fog", "overcast", "sunset"]
 
@@ -102,21 +102,23 @@ class vkitti_object(object):
         depth = self.get_depth_map(idx, cam_idx)
         velo = project_depth_to_points(calib, depth)
         velo = np.concatenate([velo, np.ones((velo.shape[0], 1))], 1)
-        points = 0.25   # percentage of points to be rejected
+        points = 0.5   # percentage of points to be rejected
         points_step = int(1. / points)
         velo_range = range(0, velo.shape[0], points_step)
         velo_frame = velo[velo_range, :]
         return velo_frame
 
 
-def project_depth_to_points(calib, depth, max_high=3.0):
+def project_depth_to_points(calib, depth, max_high=1.0):
     mask = depth > 0
     rows, cols = depth.shape
+    depth[depth > 100] = 0
     c, r = np.meshgrid(np.arange(cols), np.arange(rows))
     points = np.stack([c, r, depth])
     points = points.reshape((3, -1))
     points = points.T
     points = points[mask.reshape(-1)]
+    print(np.max(depth), np.min(depth))
     cloud = calib.project_image_to_velo(points)
     valid = (cloud[:, 0] >= 0) & (cloud[:, 2] < max_high)
     return cloud[valid]
