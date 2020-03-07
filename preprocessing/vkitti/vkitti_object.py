@@ -118,7 +118,7 @@ def project_depth_to_points(calib, depth, max_high=1.0):
     points = points.reshape((3, -1))
     points = points.T
     points = points[mask.reshape(-1)]
-    print(np.max(depth), np.min(depth))
+    # print(np.max(depth), np.min(depth))
     cloud = calib.project_image_to_velo(points)
     valid = (cloud[:, 0] >= 0) & (cloud[:, 2] < max_high)
     return cloud[valid]

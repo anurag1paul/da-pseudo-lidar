@@ -45,7 +45,7 @@ def extract_pc_in_box2d(pc, box2d):
 def demo(path):
     import mayavi.mlab as mlab
     from vkitti.viz_util import draw_lidar, draw_lidar_simple, draw_gt_boxes3d
-    dataset = vkitti_object(path, "train", "Scene20", "15-deg-left")
+    dataset = vkitti_object(path, "train", "Scene01", "15-deg-left")
     data_idx = 0
     cam_idx = 0
 
@@ -168,6 +168,7 @@ def extract_frustum_data(path, split, output_filename, viz=False,
     Output:
         None (will write a .pickle file to the disk)
     '''
+    cam_idx = 0
 
     for scene in scenes_dict[split]:
         id_list = []  # identifier
@@ -189,13 +190,13 @@ def extract_frustum_data(path, split, output_filename, viz=False,
                 idx = "{}/{}/{}".format(scene, sub_scene, data_idx)
                 print('------------- ', idx)
 
-                calib = dataset.get_calibration(data_idx) # 3 by 4 matrix
-                objects = dataset.get_label_objects(data_idx)
-                pc_velo = dataset.get_lidar(data_idx)
+                calib = dataset.get_calibration(data_idx, cam_idx) # 3 by 4 matrix
+                objects = dataset.get_label_objects(data_idx, cam_idx)
+                pc_velo = dataset.get_lidar(data_idx, cam_idx)
                 pc_rect = np.zeros_like(pc_velo)
                 pc_rect[:, 0:3] = calib.project_velo_to_rect(pc_velo[:, 0:3])
                 pc_rect[:,3] = pc_velo[:,3]
-                img = dataset.get_image(data_idx)
+                img = dataset.get_image(data_idx, cam_idx)
                 img_height, img_width, img_channel = img.shape
                 _, pc_image_coord, img_fov_inds = get_lidar_in_image_fov(pc_velo[:,0:3],
                 calib, 0, 0, img_width, img_height, True)
@@ -296,7 +297,7 @@ def get_box3d_dim_statistics(path):
             for data_idx in range(len(dataset)):
                 idx = "{}/{}/{}".format(scene, sub_scene, data_idx)
                 print('------------- ', idx)
-                objects = dataset.get_label_objects(data_idx)
+                objects = dataset.get_label_objects(data_idx, cam_idx=0)
                 for obj_idx in range(len(objects)):
                     obj = objects[obj_idx]
                     if obj.type=='DontCare':continue
@@ -328,7 +329,7 @@ def extract_frustum_data_rgb_detection(det_filename, split, output_filename,
     Output:
         None (will write a .pickle file to the disk)
     '''
-    dataset = kitti_object(os.path.join(ROOT_DIR, 'dataset/KITTI/object'), split)
+    dataset = vkitti_object(os.path.join(ROOT_DIR, 'dataset/KITTI/object'), split)
     det_id_list, det_type_list, det_box2d_list, det_prob_list = \
         read_det_file(det_filename)
     cache_id = -1
