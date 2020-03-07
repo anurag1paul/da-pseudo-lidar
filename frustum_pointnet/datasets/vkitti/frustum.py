@@ -7,8 +7,8 @@ from torch.utils.data import Dataset
 from datasets.vkitti.attributes import vkitti_attributes as vkitti
 from utils.container import G
 
-scenes_dict = {"train": ["Scene01", "Scene06", "Scene18"],
-               "val": ["Scene02"]}
+scenes_dict = {"train": ["Scene01", "Scene02", "Scene06", "Scene18"],
+               "val": ["Scene20"]}
 
 
 class FrustumVkitti(dict):
