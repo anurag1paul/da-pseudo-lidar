@@ -25,4 +25,5 @@ vkitti_attributes.class_name_to_size_template = {
     'Cyclist': np.array([1.76282397, 0.59706367, 1.73698127]),
     'Tram': np.array([16.17150617, 2.53246914, 3.53079012]),
     'Misc': np.array([3.64300781, 1.54298177, 1.92320313])
+    }
 
