@@ -48,7 +48,7 @@ class PointnetG(nn.Module):
         x, node_feat, node_off = self.node(x, x_loc)
         
         x = x.squeeze(-1)
-        x = x.features(x)
+        x = self.features(x)
         x = x.max(dim=-1, keepdim=False).values
 
         if node:

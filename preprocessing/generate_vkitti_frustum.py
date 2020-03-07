@@ -181,6 +181,7 @@ def extract_frustum_data(path, split, output_filename, viz=False,
         # (cont.) clockwise angle from positive x axis in velo coord.
         box3d_size_list = []  # array of l,w,h
         frustum_angle_list = []  # angle of 2d box center from pos x-axis
+        rejected = 0
 
         for sub_scene in sub_scenes:
             dataset = vkitti_object(path, split, scene, sub_scene)
@@ -239,6 +240,7 @@ def extract_frustum_data(path, split, output_filename, viz=False,
 
                         # Reject too far away object or object without points
                         if ymax-ymin<25 or np.sum(label)==0:
+                            rejected += 1
                             continue
 
                         id_list.append(data_idx)
@@ -255,7 +257,7 @@ def extract_frustum_data(path, split, output_filename, viz=False,
                         pos_cnt += np.sum(label)
                         all_cnt += pc_in_box_fov.shape[0]
 
-        print("Number of boxes:{}".format(len(input_list)))
+        print("Number of boxes:{}, rejected:{}".format(len(input_list), rejected))
         print('Average pos ratio: %f' % (pos_cnt / float(all_cnt)))
         print('Average npoints: %f' % (float(all_cnt) / len(id_list)))
 
@@ -341,6 +343,7 @@ def extract_frustum_data_rgb_detection(det_filename, split, output_filename,
     prob_list = []
     input_list = [] # channel number = 4, xyz,intensity in rect camera coord
     frustum_angle_list = [] # angle of 2d box center from pos x-axis
+    r = 0
 
     for det_idx in range(len(det_id_list)):
         data_idx = det_id_list[det_idx]
