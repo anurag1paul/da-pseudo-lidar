@@ -402,7 +402,7 @@ def extract_frustum_data_rgb_detection(path, split, output_filename,
                     pc_velo[:,0:3], calib, 0, 0, img_width, img_height, True)
 
                 objects = dataset.get_label_objects(data_idx, cam_idx)
-                write_gt_file(val_folder, tot_idx, objects)
+                gt_objects = []
 
                 for det_idx in range(len(objects)):
                     if objects[det_idx].type not in type_whitelist :continue
@@ -435,6 +435,8 @@ def extract_frustum_data_rgb_detection(path, split, output_filename,
                     prob_list.append(1.0)
                     input_list.append(pc_in_box_fov)
                     frustum_angle_list.append(frustum_angle)
+                    gt_objects.append(objects[det_idx])
+                write_gt_file(gt_objects, tot_idx)
                 tot_idx += 1
 
     with open(output_filename,'wb') as fp:
@@ -447,7 +449,7 @@ def extract_frustum_data_rgb_detection(path, split, output_filename,
 
     with open("val.txt", "w") as f:
         for i in range(tot_idx):
-            f.write("{:06d}".format(i))
+            f.write("{:06d}\n".format(i))
 
     if viz:
         import mayavi.mlab as mlab
