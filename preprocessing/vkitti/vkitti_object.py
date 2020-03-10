@@ -105,20 +105,16 @@ class vkitti_object(object):
         calib = self.get_calibration(idx, cam_idx)
         depth = self.get_depth_map(idx, cam_idx)
         velo = project_depth_to_points(calib, depth)
-        # temp = np.zeros_like(velo)
         velo = np.concatenate([velo, np.ones((velo.shape[0], 1))], 1)
-        points = 0.25   # percentage of points to be rejected
-        points_step = int(1. / points)
-        velo_range = range(0, velo.shape[0], points_step)
-        velo_frame = velo[velo_range, :]
-        return velo_frame
+        return velo
 
 
 def project_depth_to_points(calib, depth, max_high=1.0):
-    mask = depth > 0
+    depth[depth > MAX_DEPTH] = -1
+    depth = np.round(depth, 2)
     rows, cols = depth.shape
-    depth[depth > MAX_DEPTH] = 0
     c, r = np.meshgrid(np.arange(cols), np.arange(rows))
+    mask = (depth > 0) & (c%2 == 0) & (r%2 ==0)
     points = np.stack([c, r, depth])
     points = points.reshape((3, -1))
     points = points.T

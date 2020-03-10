@@ -45,7 +45,7 @@ def extract_pc_in_box2d(pc, box2d):
 def demo(path):
     import mayavi.mlab as mlab
     from vkitti.viz_util import draw_lidar, draw_lidar_simple, draw_gt_boxes3d
-    dataset = vkitti_object(path, "train", "Scene18", "clone")
+    dataset = vkitti_object(path, "train", "Scene01", "clone")
     data_idx = 25
     cam_idx = 1
 
