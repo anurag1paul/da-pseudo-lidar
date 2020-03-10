@@ -20,7 +20,7 @@ scenes_dict = {"train": ["Scene01", "Scene02", "Scene06", "Scene18"],
                "val": ["Scene20"]}
 sub_scenes = ["15-deg-left", "30-deg-left", "15-deg-right", "30-deg-right",
               "clone", "morning", "rain", "fog", "overcast", "sunset"]
-MAX_DEPTH = 200
+MAX_DEPTH = 100
 
 
 class vkitti_object(object):
@@ -102,6 +102,7 @@ class vkitti_object(object):
         calib = self.get_calibration(idx, cam_idx)
         depth = self.get_depth_map(idx, cam_idx)
         velo = project_depth_to_points(calib, depth)
+        # temp = np.zeros_like(velo)
         velo = np.concatenate([velo, np.ones((velo.shape[0], 1))], 1)
         points = 0.25   # percentage of points to be rejected
         points_step = int(1. / points)
