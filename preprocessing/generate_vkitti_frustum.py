@@ -335,6 +335,18 @@ def get_box3d_dim_statistics(path):
         print(type, dims_data.mean(axis=0))
 
 
+def write_gt_file(val_folder, tot_idx, objects):
+    path = os.path.join(val_folder, "{}.txt".format(tot_idx))
+    with open(path, "w") as f:
+        for i in range(len(objects)):
+            obj = objects[i]
+            row = "{} {} {} {} ".format(obj.type, obj.truncation, obj.occlusion, obj.alpha)
+            row += "{} {} {} {} ".format(*obj.box2d)
+            row += "{} {} {} ".format(obj.h, obj.w, obj.l)
+            row += "{} {} {} {}\n".format(*obj.t, obj.ry)
+            f.write(row)
+
+
 def extract_frustum_data_rgb_detection(path, split, output_filename,
                                        viz=False,
                                        type_whitelist=['Car'],
@@ -366,6 +378,11 @@ def extract_frustum_data_rgb_detection(path, split, output_filename,
     frustum_angle_list = [] # angle of 2d box center from pos x-axis
     r = 0
     cam_idx = 0
+    tot_idx = 0
+
+    val_folder = "val"
+    if not os.path.exists(val_folder):
+        os.makedirs(val_folder)
 
     for scene in scenes_dict[split]:
         for sub_scene in sub_scenes:
@@ -385,6 +402,7 @@ def extract_frustum_data_rgb_detection(path, split, output_filename,
                     pc_velo[:,0:3], calib, 0, 0, img_width, img_height, True)
 
                 objects = dataset.get_label_objects(data_idx, cam_idx)
+                write_gt_file(val_folder, tot_idx, objects)
 
                 for det_idx in range(len(objects)):
                     if objects[det_idx].type not in type_whitelist :continue
@@ -411,12 +429,13 @@ def extract_frustum_data_rgb_detection(path, split, output_filename,
                         len(pc_in_box_fov)<lidar_point_threshold:
                         continue
 
-                    id_list.append(data_idx)
+                    id_list.append(tot_idx)
                     type_list.append(objects[det_idx].type)
                     box2d_list.append(objects[det_idx].box2d)
                     prob_list.append(1.0)
                     input_list.append(pc_in_box_fov)
                     frustum_angle_list.append(frustum_angle)
+                tot_idx += 1
 
     with open(output_filename,'wb') as fp:
         pickle.dump(id_list, fp)
@@ -425,6 +444,10 @@ def extract_frustum_data_rgb_detection(path, split, output_filename,
         pickle.dump(type_list, fp)
         pickle.dump(frustum_angle_list, fp)
         pickle.dump(prob_list, fp)
+
+    with open("val.txt", "w") as f:
+        for i in range(tot_idx):
+            f.write("{:06d}".format(i))
 
     if viz:
         import mayavi.mlab as mlab
