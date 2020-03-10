@@ -30,10 +30,12 @@ class vkitti_object(object):
         """root_dir contains scene folders"""
         self.root_dir = root_dir
         self.split = split
-
+        # print(scene, scenes_dict[split])
         assert scene in scenes_dict[split]
         assert sub_scene in sub_scenes
 
+        self.scene = scene
+        self.sub_scene = sub_scene
         self.sub_scene_dir = os.path.join(self.root_dir, scene, sub_scene)
         self.image_dir = os.path.join(self.sub_scene_dir, "frames", "rgb")
         self.depth_dir = os.path.join(self.sub_scene_dir, "frames", "depth")
@@ -71,7 +73,8 @@ class vkitti_object(object):
 
     def get_calibration(self, idx, cam_idx):
         assert (idx < self.num_samples)
-        return utils.Calibration(self.intrinsics[cam_idx].iloc[idx],
+        return utils.Calibration(self.scene, self.sub_scene,
+                                 self.intrinsics[cam_idx].iloc[idx],
                                  self.extrinsics[cam_idx].iloc[idx])
 
     def get_label_objects(self, idx, cam_idx):
@@ -184,7 +187,8 @@ def show_lidar_with_boxes(pc_velo, objects, calib,
         draw_gt_boxes3d([box3d_pts_3d_velo], fig=fig)
         mlab.plot3d([x1, x2], [y1, y2], [z1,z2], color=(0.5,0.5,0.5),
             tube_radius=None, line_width=1, figure=fig)
-    mlab.show(1)
+    # mlab.show(1)
+    return fig
 
 
 def show_lidar_on_image(pc_velo, img, calib, img_width, img_height):

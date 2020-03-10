@@ -45,9 +45,9 @@ def extract_pc_in_box2d(pc, box2d):
 def demo(path):
     import mayavi.mlab as mlab
     from vkitti.viz_util import draw_lidar, draw_lidar_simple, draw_gt_boxes3d
-    dataset = vkitti_object(path, "train", "Scene01", "15-deg-left")
-    data_idx = 0
-    cam_idx = 0
+    dataset = vkitti_object(path, "train", "Scene18", "clone")
+    data_idx = 25
+    cam_idx = 1
 
     # Load data from dataset
     objects = dataset.get_label_objects(data_idx, cam_idx)
@@ -131,6 +131,29 @@ def demo(path):
     draw_lidar(boxfov_pc_velo, fig=fig)
     mlab.show(1)
     raw_input()
+
+
+def test(path, scene):
+    import mayavi.mlab as mlab
+    from vkitti.viz_util import draw_lidar, draw_lidar_simple, draw_gt_boxes3d
+    for sub_scene in sub_scenes[:5]:
+        print(sub_scene)
+        dataset = vkitti_object(path, "train", scene, sub_scene)
+        data_idx = 25
+        cam_idx = 0
+
+        # Load data from dataset
+        objects = dataset.get_label_objects(data_idx, cam_idx)
+        objects[0].print_object()
+        img = dataset.get_image(data_idx, cam_idx)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img_height, img_width, img_channel = img.shape
+        print(('Image shape: ', img.shape))
+        pc_velo = dataset.get_lidar(data_idx, cam_idx)[:, 0:3]
+        calib = dataset.get_calibration(data_idx, cam_idx)
+
+        fig = show_lidar_with_boxes(pc_velo, objects, calib, True, img_width, img_height)
+        mlab.savefig('{}_{}.jpg'.format(scene, sub_scene), figure=fig)
 
 
 def random_shift_box2d(box2d, shift_ratio=0.1):
@@ -422,6 +445,7 @@ def extract_frustum_data_rgb_detection(det_filename, split, output_filename,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--demo', action='store_true', help='Run demo.')
+    parser.add_argument('--test', action='store_true', help='Run test.')
     parser.add_argument('--path', help='Vkitti data path')
     parser.add_argument('--gen_train', action='store_true',
                         help='Generate train split frustum data with perturbed GT 2D boxes')
@@ -434,6 +458,9 @@ if __name__ == '__main__':
     parser.add_argument('--stats', action='store_true',
                         help='generate 3d stats')
     args = parser.parse_args()
+
+    if args.test:
+        test(args.path, "Scene18")
 
     if args.demo:
         demo(args.path)

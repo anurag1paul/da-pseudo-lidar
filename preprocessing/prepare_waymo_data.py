@@ -480,6 +480,8 @@ if __name__=='__main__':
     parser.add_argument('--car_only', action='store_true', help='Only generate cars; otherwise cars, peds and cycs')
     args = parser.parse_args()
 
+    test(path)
+
     if args.demo:
         demo(args.path)
         exit()
