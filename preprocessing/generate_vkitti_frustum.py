@@ -336,7 +336,7 @@ def get_box3d_dim_statistics(path):
 
 
 def write_gt_file(val_folder, tot_idx, objects):
-    path = os.path.join(val_folder, "{}.txt".format(tot_idx))
+    path = os.path.join(val_folder, "{:06d}.txt".format(tot_idx))
     with open(path, "w") as f:
         for i in range(len(objects)):
             obj = objects[i]
@@ -447,7 +447,7 @@ def extract_frustum_data_rgb_detection(path, split, output_filename,
 
     with open("val.txt", "w") as f:
         for i in range(tot_idx):
-            f.write("{:06d}".format(i))
+            f.write("{:06d}\n".format(i))
 
     if viz:
         import mayavi.mlab as mlab
