@@ -436,7 +436,7 @@ def extract_frustum_data_rgb_detection(path, split, output_filename,
                     input_list.append(pc_in_box_fov)
                     frustum_angle_list.append(frustum_angle)
                     gt_objects.append(objects[det_idx])
-                write_gt_file(gt_objects, tot_idx)
+                write_gt_file(val_folder, tot_idx, gt_objects)
                 tot_idx += 1
 
     with open(output_filename,'wb') as fp:
