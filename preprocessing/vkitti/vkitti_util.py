@@ -31,6 +31,7 @@ transform_mat = {"Scene01": {"15-deg-left": -6/12.0, "30-deg-left":-5/12.0,
                              "clone": -2.5/12.0, "morning": -2.5/12.0, "rain": -2.5/12.0,
                              "fog": -2.5/12.0, "overcast": -2.5/12.0, "sunset": -2.5/12.0}}
 
+
 class Object3d(object):
     """ 3d object label """
 

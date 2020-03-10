@@ -335,7 +335,7 @@ def get_box3d_dim_statistics(path):
         print(type, dims_data.mean(axis=0))
 
 
-def extract_frustum_data_rgb_detection(det_filename, split, output_filename,
+def extract_frustum_data_rgb_detection(path, split, output_filename,
                                        viz=False,
                                        type_whitelist=['Car'],
                                        img_height_threshold=25,
@@ -355,9 +355,6 @@ def extract_frustum_data_rgb_detection(det_filename, split, output_filename,
     Output:
         None (will write a .pickle file to the disk)
     '''
-    dataset = vkitti_object(os.path.join(ROOT_DIR, 'dataset/KITTI/object'), split)
-    det_id_list, det_type_list, det_box2d_list, det_prob_list = \
-        read_det_file(det_filename)
     cache_id = -1
     cache = None
 
@@ -368,56 +365,58 @@ def extract_frustum_data_rgb_detection(det_filename, split, output_filename,
     input_list = [] # channel number = 4, xyz,intensity in rect camera coord
     frustum_angle_list = [] # angle of 2d box center from pos x-axis
     r = 0
+    cam_idx = 0
 
-    for det_idx in range(len(det_id_list)):
-        data_idx = det_id_list[det_idx]
-        print('det idx: %d/%d, data idx: %d' % \
-            (det_idx, len(det_id_list), data_idx))
-        if cache_id != data_idx:
-            calib = dataset.get_calibration(data_idx) # 3 by 4 matrix
-            pc_velo = dataset.get_lidar(data_idx)
-            pc_rect = np.zeros_like(pc_velo)
-            pc_rect[:,0:3] = calib.project_velo_to_rect(pc_velo[:,0:3])
-            pc_rect[:,3] = pc_velo[:,3]
-            img = dataset.get_image(data_idx)
-            img_height, img_width, img_channel = img.shape
-            _, pc_image_coord, img_fov_inds = get_lidar_in_image_fov(\
-                pc_velo[:,0:3], calib, 0, 0, img_width, img_height, True)
-            cache = [calib,pc_rect,pc_image_coord,img_fov_inds]
-            cache_id = data_idx
-        else:
-            calib,pc_rect,pc_image_coord,img_fov_inds = cache
+    for scene in scenes_dict[split]:
+        for sub_scene in sub_scenes:
+            dataset = vkitti_object(path, split, scene, sub_scene)
+            for data_idx in range(len(dataset)):
+                idx = "{}/{}/{}".format(scene, sub_scene, data_idx)
+                print('------------- ', idx)
 
-        if det_type_list[det_idx] not in type_whitelist: continue
+                calib = dataset.get_calibration(data_idx, cam_idx) # 3 by 4 matrix
+                pc_velo = dataset.get_lidar(data_idx, cam_idx)
+                pc_rect = np.zeros_like(pc_velo)
+                pc_rect[:,0:3] = calib.project_velo_to_rect(pc_velo[:,0:3])
+                pc_rect[:,3] = pc_velo[:,3]
+                img = dataset.get_image(data_idx, cam_idx)
+                img_height, img_width, img_channel = img.shape
+                _, pc_image_coord, img_fov_inds = get_lidar_in_image_fov(
+                    pc_velo[:,0:3], calib, 0, 0, img_width, img_height, True)
 
-        # 2D BOX: Get pts rect backprojected
-        xmin,ymin,xmax,ymax = det_box2d_list[det_idx]
-        box_fov_inds = (pc_image_coord[:,0]<xmax) & \
-            (pc_image_coord[:,0]>=xmin) & \
-            (pc_image_coord[:,1]<ymax) & \
-            (pc_image_coord[:,1]>=ymin)
-        box_fov_inds = box_fov_inds & img_fov_inds
-        pc_in_box_fov = pc_rect[box_fov_inds,:]
-        # Get frustum angle (according to center pixel in 2D BOX)
-        box2d_center = np.array([(xmin+xmax)/2.0, (ymin+ymax)/2.0])
-        uvdepth = np.zeros((1,3))
-        uvdepth[0,0:2] = box2d_center
-        uvdepth[0,2] = 20 # some random depth
-        box2d_center_rect = calib.project_image_to_rect(uvdepth)
-        frustum_angle = -1 * np.arctan2(box2d_center_rect[0,2],
-            box2d_center_rect[0,0])
+                objects = dataset.get_label_objects(data_idx, cam_idx)
 
-        # Pass objects that are too small
-        if ymax-ymin<img_height_threshold or \
-            len(pc_in_box_fov)<lidar_point_threshold:
-            continue
+                for det_idx in range(len(objects)):
+                    if objects[det_idx].type not in type_whitelist :continue
 
-        id_list.append(data_idx)
-        type_list.append(det_type_list[det_idx])
-        box2d_list.append(det_box2d_list[det_idx])
-        prob_list.append(det_prob_list[det_idx])
-        input_list.append(pc_in_box_fov)
-        frustum_angle_list.append(frustum_angle)
+                    # 2D BOX: Get pts rect backprojected
+                    xmin,ymin,xmax,ymax = objects[det_idx].box2d
+                    box_fov_inds = (pc_image_coord[:,0] < xmax) & \
+                        (pc_image_coord[:,0] >= xmin) & \
+                        (pc_image_coord[:,1] < ymax) & \
+                        (pc_image_coord[:,1] >= ymin)
+                    box_fov_inds = box_fov_inds & img_fov_inds
+                    pc_in_box_fov = pc_rect[box_fov_inds,:]
+                    # Get frustum angle (according to center pixel in 2D BOX)
+                    box2d_center = np.array([(xmin+xmax)/2.0, (ymin+ymax)/2.0])
+                    uvdepth = np.zeros((1,3))
+                    uvdepth[0, 0:2] = box2d_center
+                    uvdepth[0, 2] = 20 # some random depth
+                    box2d_center_rect = calib.project_image_to_rect(uvdepth)
+                    frustum_angle = -1 * np.arctan2(box2d_center_rect[0,2],
+                        box2d_center_rect[0,0])
+
+                    # Pass objects that are too small
+                    if ymax-ymin<img_height_threshold or \
+                        len(pc_in_box_fov)<lidar_point_threshold:
+                        continue
+
+                    id_list.append(data_idx)
+                    type_list.append(objects[det_idx].type)
+                    box2d_list.append(objects[det_idx].box2d)
+                    prob_list.append(1.0)
+                    input_list.append(pc_in_box_fov)
+                    frustum_angle_list.append(frustum_angle)
 
     with open(output_filename,'wb') as fp:
         pickle.dump(id_list, fp)
@@ -494,8 +493,8 @@ if __name__ == '__main__':
 
     if args.gen_val_rgb_detection:
         extract_frustum_data_rgb_detection(
-            os.path.join(BASE_DIR, 'rgb_detections/rgb_detection_val.txt'),
-            'training',
+            args.path,
+            'val',
             os.path.join(BASE_DIR, output_prefix+'val_rgb_detection.pickle'),
             viz=False,
             type_whitelist=type_whitelist)
