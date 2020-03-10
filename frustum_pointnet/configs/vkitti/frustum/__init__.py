@@ -39,6 +39,15 @@ configs.dataset.random_shift = True
 configs.dataset.frustum_rotate = True
 configs.dataset.from_rgb_detection = False
 
+configs.kitti_dataset = Config(FrustumKitti)
+configs.kitti_dataset.from_rgb_detection = False
+configs.kitti_dataset.root = 'data/kitti/frustum/frustum_data'
+configs.kitti_dataset.split = "val"
+configs.kitti_dataset.num_points = 1024
+configs.kitti_dataset.classes = configs.data.classes
+configs.kitti_dataset.num_heading_angle_bins = configs.data.num_heading_angle_bins
+configs.kitti_dataset.class_name_to_size_template_id = configs.data.class_name_to_size_template_id
+
 # evaluate configs
 configs.evaluate.fn = evaluate
 configs.evaluate.batch_size = 32

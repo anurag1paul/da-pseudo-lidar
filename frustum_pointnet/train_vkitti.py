@@ -166,8 +166,7 @@ def main():
 
     print(f'\n==> loading dataset "{configs.dataset}"')
     dataset = configs.dataset()
-    configs.evaluate.dataset.from_rgb_detection = False
-    kitti_val_dataset = configs.evaluate.dataset()
+    kitti_val_dataset = configs.kitti_dataset()
     loaders = {}
     for split in dataset:
         loaders[split] = DataLoader(
