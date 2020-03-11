@@ -104,14 +104,14 @@ def update_predictions(predictions, center, heading, size, rotation_angle, curre
         t = heading[b]
         v_cos = np.cos(r)
         v_sin = np.sin(r)
-        cx = v_cos * x + v_sin * z  # it should be v_cos * x - v_sin * z, but the rotation angle = -r
-        cy = y + h / 2.0
-        cz = v_cos * z - v_sin * x  # it should be v_sin * x + v_cos * z, but the rotation angle = -r
+        # cx = v_cos * x + v_sin * z  # it should be v_cos * x - v_sin * z, but the rotation angle = -r
+        # cy = y + h / 2.0
+        # cz = v_cos * z - v_sin * x  # it should be v_sin * x + v_cos * z, but the rotation angle = -r
         r = r + t
         while r > np.pi:
             r = r - 2 * np.pi
         while r < -np.pi:
             r = r + 2 * np.pi
-        predictions[current_step + b] = [h, w, l, cx, cy, cz, r]
+        predictions[current_step + b] = [h, w, l, x, y, z, r]
 
 
