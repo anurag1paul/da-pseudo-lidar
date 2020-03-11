@@ -7,7 +7,7 @@ from datasets.vkitti import FrustumVkitti
 from datasets.vkitti.attributes import vkitti_attributes as vkitti
 from meters.kitti import MeterFrustumKitti
 from modules.frustum import FrustumPointNetLoss
-from evaluate.kitti.frustum.eval import evaluate
+from evaluate.evaluate import evaluate
 from utils.config import Config, configs
 
 # data configs

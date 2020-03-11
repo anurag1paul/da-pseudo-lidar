@@ -59,6 +59,7 @@ class MeterFrustumKitti:
             size_template_id = torch.argmax(size_scores, dim=1)
             size = self.size_templates[size_template_id] + size_residuals[batch_id, size_template_id]  # (B, 3)
             corners = get_box_corners_3d(centers=center, headings=heading, sizes=size, with_flip=False)  # (B, 8, 3)
+
             heading_target = self.heading_angle_bin_centers[heading_bin_id_target] + heading_residual_target  # (B, )
             size_target = self.size_templates[size_template_id_target] + size_residual_target  # (B, 3)
             corners_target = get_box_corners_3d(centers=center_target, headings=heading_target,
