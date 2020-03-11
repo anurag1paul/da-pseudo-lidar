@@ -86,10 +86,9 @@ def evaluate(configs):
             heading = heading.cpu().numpy()
             size = size.cpu().numpy()
             rotation_angle = targets['rotation_angle'].cpu().numpy()  # (B, )
-            rgb_score = targets['rgb_score'].cpu().numpy()  # (B, )
 
             update_predictions(predictions=predictions, center=center, heading=heading, size=size,
-                               rotation_angle=rotation_angle, rgb_score=rgb_score,
+                               rotation_angle=rotation_angle,
                                current_step=current_step, batch_size=batch_size)
             current_step += batch_size
 
@@ -97,13 +96,12 @@ def evaluate(configs):
 
 
 @numba.jit()
-def update_predictions(predictions, center, heading, size, rotation_angle, rgb_score, current_step, batch_size):
+def update_predictions(predictions, center, heading, size, rotation_angle, current_step, batch_size):
     for b in range(batch_size):
         l, w, h = size[b]
         x, y, z = center[b]  # (3)
         r = rotation_angle[b]
         t = heading[b]
-        s = rgb_score[b]
         v_cos = np.cos(r)
         v_sin = np.sin(r)
         cx = v_cos * x + v_sin * z  # it should be v_cos * x - v_sin * z, but the rotation angle = -r
@@ -114,6 +112,6 @@ def update_predictions(predictions, center, heading, size, rotation_angle, rgb_s
             r = r - 2 * np.pi
         while r < -np.pi:
             r = r + 2 * np.pi
-        predictions[current_step + b] = [h, w, l, cx, cy, cz, r, s]
+        predictions[current_step + b] = [h, w, l, cx, cy, cz, r]
 
 

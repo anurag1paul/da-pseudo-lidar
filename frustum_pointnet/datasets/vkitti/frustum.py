@@ -158,7 +158,7 @@ class _FrustumVkittiDataset(Dataset):
                {'mask_logits': mask_logits.astype(np.int64), 'center': center.astype(np.float32),
                 'heading_bin_id': heading_bin_id,  'heading_residual': np.array(heading_residual, dtype=np.float32),
                 'size_template_id': size_template_id, 'size_residual': size_residual.astype(np.float32),
-                'class_id': self.class_name_to_class_id[class_name]}
+                'class_id': self.class_name_to_class_id[class_name], 'rotation_angle': rotation_angle.astype(np.float32)}
 
     @staticmethod
     def rotate_points_along_y(features, rotation_angle):
