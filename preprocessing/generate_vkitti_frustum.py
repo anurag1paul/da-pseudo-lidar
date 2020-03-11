@@ -343,7 +343,8 @@ def write_gt_file(val_folder, tot_idx, objects):
             row = "{} {} {} {} ".format(obj.type, obj.truncation, obj.occlusion, obj.alpha)
             row += "{} {} {} {} ".format(*obj.box2d)
             row += "{} {} {} ".format(obj.h, obj.w, obj.l)
-            row += "{} {} {} {}\n".format(*obj.t, obj.ry)
+            row += "{} {} {} ".format(*obj.t)
+            row += "{}\n".format(obj.ry)
             f.write(row)
 
 
