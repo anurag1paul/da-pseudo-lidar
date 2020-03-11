@@ -57,7 +57,7 @@ def evaluate(configs):
     # Evaluation #
     ##############
 
-    predictions = np.zeros((len(dataset), 8))
+    predictions = np.zeros((len(dataset), 7))
     size_templates = configs.data.size_templates.to(configs.device)
     heading_angle_bin_centers = torch.arange(
         0, 2 * np.pi, 2 * np.pi / configs.data.num_heading_angle_bins).to(configs.device)
@@ -87,8 +87,8 @@ def evaluate(configs):
             size = size.cpu().numpy()
             rotation_angle = targets['rotation_angle'].cpu().numpy()  # (B, )
 
-            update_predictions(predictions=predictions, center=center, heading=heading, size=size,
-                               rotation_angle=rotation_angle,
+            update_predictions(predictions=predictions, center=center, heading=heading,
+                               size=size, rotation_angle=rotation_angle,
                                current_step=current_step, batch_size=batch_size)
             current_step += batch_size
 
