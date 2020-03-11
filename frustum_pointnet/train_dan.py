@@ -176,12 +176,12 @@ def main():
             optimizer_cls.zero_grad()
 
             # Local Alignment
-            feat_node_s = model.module.inst_seg_net({'features': inputs['features'],
+            _, _, feat_node_s = model.module.inst_seg_net({'features': inputs['features'],
                                               'one_hot_vectors': inputs[
                                                   'one_hot_vectors']},
                                              node_adaptation_s=True)
 
-            feat_node_t = model.module.inst_seg_net({'features': inputs_t['features'],
+            _, _, feat_node_t = model.module.inst_seg_net({'features': inputs_t['features'],
                                               'one_hot_vectors': inputs_t[
                                                   'one_hot_vectors']},
                                              node_adaptation_t=True)
