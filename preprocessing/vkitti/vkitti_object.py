@@ -115,7 +115,7 @@ def project_depth_to_points(calib, depth, max_high=1.0):
     depth = np.round(depth, 2)
     rows, cols = depth.shape
     c, r = np.meshgrid(np.arange(cols), np.arange(rows))
-    mask = (depth > 0) & (c % 3 == 0)
+    mask = (depth > 0) & (c % 2 == 0) & (r % 2 == 0)
     points = np.stack([c, r, depth])
     points = points.reshape((3, -1))
     points = points.T
