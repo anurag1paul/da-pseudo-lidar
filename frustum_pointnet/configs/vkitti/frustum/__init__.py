@@ -51,9 +51,9 @@ configs.kitti_dataset.class_name_to_size_template_id = configs.data.class_name_t
 # evaluate configs
 configs.evaluate.fn = evaluate
 configs.evaluate.batch_size = 32
-configs.evaluate.dataset = Config(FrustumKitti)
+configs.evaluate.dataset = Config(FrustumVkitti)
 configs.evaluate.dataset.from_rgb_detection = False
-configs.evaluate.dataset.root = 'data/kitti/frustum/frustum_data'
+configs.evaluate.dataset.root = 'data/vkitti/frustum/frustum_data'
 configs.evaluate.dataset.split = "val"
 configs.evaluate.dataset.num_points = 1024
 configs.evaluate.dataset.classes = configs.data.classes
