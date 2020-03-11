@@ -63,10 +63,18 @@ def evaluate(configs):
         0, 2 * np.pi, 2 * np.pi / configs.data.num_heading_angle_bins).to(configs.device)
     current_step = 0
 
+    meters = {}
+    for k, meter in configs.train.meters.items():
+        meters[k.format("val")] = meter()
+
     with torch.no_grad():
         for inputs, targets in tqdm(loader, desc='eval', ncols=0):
             for k, v in inputs.items():
                 inputs[k] = v.to(configs.device, non_blocking=True)
+
+            for k, v in targets.items():
+                targets[k] = v.to(configs.device, non_blocking=True)
+
             outputs = model(inputs)
 
             center = outputs['center']  # (B, 3)
@@ -91,6 +99,13 @@ def evaluate(configs):
                                size=size, rotation_angle=rotation_angle,
                                current_step=current_step, batch_size=batch_size)
             current_step += batch_size
+
+            for meter in meters.values():
+                meter.update(outputs, targets)
+
+    for k, meter in meters.items():
+        meters[k] = meter.compute()
+        print(f'[{k}] = {meters[k]:2f}')
 
     np.save(configs.evaluate.stats_path, predictions)
 

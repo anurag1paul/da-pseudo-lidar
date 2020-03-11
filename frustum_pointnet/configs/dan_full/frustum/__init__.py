@@ -99,7 +99,7 @@ configs.train.discrepancy.box_loss_weight = 1.0
 configs.train.gen_num_train = 2
 
 # train: optimizer
-configs.train.base_lr = 1e-4
+configs.train.base_lr = 5e-4
 configs.train.optimizer_g = Config(optim.Adam)
 configs.train.optimizer_g.weight_decay = 5e-4
 configs.train.optimizer_g.lr = configs.train.base_lr
