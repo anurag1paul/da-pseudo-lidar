@@ -191,7 +191,7 @@ class PointnetSimpleGenerator(nn.Module):
         self.point_features = nn.Sequential(*layers)
 
         layers, channels_cloud, _ = create_pointnet_components(
-            blocks=cloud_blocks, in_channels=2*channels_point, with_se=False,
+            blocks=cloud_blocks, in_channels=channels_point, with_se=False,
         )
         self.cloud_features = nn.Sequential(*layers)
 
@@ -199,7 +199,7 @@ class PointnetSimpleGenerator(nn.Module):
 
         point_feat = self.point_features(x)
 
-        cloud_feat = self.cloud_features(x)
+        cloud_feat = self.cloud_features(point_feat)
         cloud_feat, _ = torch.max(cloud_feat, dim=-1, keepdim=True)
 
         return cloud_feat, point_feat
@@ -240,7 +240,6 @@ class InstanceSegmentationPointDanSimple(nn.Module):
 
         assert one_hot_vectors.dim() == 3  # [B, C, N]
 
-        features = features.unsqueeze(-1)
         cloud_feat, point_feat = self.g(features)
 
         if adaptation:
