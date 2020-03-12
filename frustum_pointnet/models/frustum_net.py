@@ -13,7 +13,7 @@ from models.center_regression_net import CenterRegressionNet, \
 
 __all__ = ['FrustumPointNet', 'FrustumPointNet2', "FrustumPointDanParallel",
            'FrustumPVCNNE', 'FrustumPointDAN', "FrustumPointDAN2",
-           "FrustumPointDanSimple"]
+           "FrustumPointDanSimple", "FrustumPointDanSimpleParallel"]
 
 
 class FrustumNet(nn.Module):
@@ -313,7 +313,8 @@ class FrustumPointDAN2(nn.Module):
 
 class FrustumPointDanParallel(nn.Module):
     def __init__(self, num_classes, num_heading_angle_bins, num_size_templates, num_points_per_object,
-                 size_templates, extra_feature_channels=1, width_multiplier=1):
+                 size_templates, extra_feature_channels=1, width_multiplier=1,
+                 inst_seg_net=InstanceSegmentationPointDAN):
         super().__init__()
         if not isinstance(width_multiplier, (list, tuple)):
             width_multiplier = [width_multiplier] * 3
@@ -323,17 +324,18 @@ class FrustumPointDanParallel(nn.Module):
         self.num_size_templates = num_size_templates
         self.num_points_per_object = num_points_per_object
 
-        self.inst_seg_net = InstanceSegmentationPointDAN(num_classes=num_classes,
-                                                      extra_feature_channels=extra_feature_channels,
-                                                      width_multiplier=width_multiplier[0])
+        self.inst_seg_net = inst_seg_net(num_classes=num_classes,
+                                        extra_feature_channels=extra_feature_channels,
+                                        width_multiplier=width_multiplier[0])
         self.center_reg_nets = nn.ModuleList([CenterRegressionNet(num_classes=num_classes,
                                                     width_multiplier=width_multiplier[1])
-                                for _ in range(2)])
+                                              for _ in range(2)])
 
-        self.box_est_nets = nn.ModuleList([BoxEstimationPointNet(num_classes=num_classes, num_heading_angle_bins=num_heading_angle_bins,
-                                              num_size_templates=num_size_templates,
-                                              width_multiplier=width_multiplier[2])
-                             for _ in range(2)])
+        self.box_est_nets = nn.ModuleList([BoxEstimationPointNet(num_classes=num_classes,
+                                                                 num_heading_angle_bins=num_heading_angle_bins,
+                                                                 num_size_templates=num_size_templates,
+                                                                 width_multiplier=width_multiplier[2])
+                                           for _ in range(2)])
         self.register_buffer('size_templates', size_templates.view(1, self.num_size_templates, 3))
 
     def forward(self, inputs):
@@ -389,3 +391,13 @@ class FrustumPointDanParallel(nn.Module):
 
             return outputs
 
+
+class FrustumPointDanSimpleParallel(FrustumPointDanParallel):
+    def __init__(self, num_classes, num_heading_angle_bins, num_size_templates,
+                 num_points_per_object, size_templates, extra_feature_channels=1,
+                 width_multiplier=1):
+        super().__init__(num_classes, num_heading_angle_bins,
+                         num_size_templates, num_points_per_object,
+                         size_templates, extra_feature_channels=extra_feature_channels,
+                         width_multiplier=width_multiplier,
+                         inst_seg_net=InstanceSegmentationPointDanSimple)

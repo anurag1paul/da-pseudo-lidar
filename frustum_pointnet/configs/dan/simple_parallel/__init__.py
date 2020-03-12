@@ -6,7 +6,7 @@ from datasets.kitti import FrustumKitti
 from datasets.vkitti.attributes import vkitti_attributes as vkitti
 from datasets.vkitti import FrustumVkitti
 from meters.kitti import MeterFrustumKitti
-from modules.frustum import FrustumPointDANLoss
+from modules.frustum import FrustumPointDanParallelLoss
 from evaluate.kitti.frustum.eval import evaluate
 from utils.config import Config, configs
 
@@ -84,7 +84,7 @@ for name, metric in [
 configs.train.metrics = ('acc/iou_3d_class_acc_val', 'acc/iou_3d_acc_val')
 
 # train: criterion
-configs.train.criterion = Config(FrustumPointDANLoss)
+configs.train.criterion = Config(FrustumPointDanParallelLoss)
 configs.train.criterion.num_heading_angle_bins = configs.data.num_heading_angle_bins
 configs.train.criterion.num_size_templates = configs.data.num_size_templates
 configs.train.criterion.size_templates = configs.data.size_templates
