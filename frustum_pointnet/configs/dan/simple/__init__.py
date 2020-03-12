@@ -66,7 +66,7 @@ configs.evaluate.dataset.class_name_to_size_template_id = configs.data.class_nam
 # train configs
 configs.train = Config()
 configs.train.num_epochs = 100
-configs.train.batch_size = 64
+configs.train.batch_size = 32
 
 # train: meters
 configs.train.meters = Config()
@@ -96,7 +96,7 @@ configs.train.criterion.size_residual_loss_weight = 20.0
 configs.train.gen_num_train = 1
 
 # train: optimizer
-configs.train.base_lr = 1e-3
+configs.train.base_lr = 5e-4
 configs.train.optimizer_g = Config(optim.Adam)
 configs.train.optimizer_g.weight_decay = 5e-4
 configs.train.optimizer_g.lr = configs.train.base_lr
