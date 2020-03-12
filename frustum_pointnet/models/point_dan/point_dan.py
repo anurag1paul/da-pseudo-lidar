@@ -176,6 +176,35 @@ class InstanceSegmentationPointDAN(nn.Module):
             return y1, y2
 
 
+# Generator
+class PointnetSimpleGenerator(nn.Module):
+    def __init__(self, in_channels):
+        super(PointnetSimpleGenerator, self).__init__()
+        self.in_channels= in_channels
+
+        point_blocks = ((64, 3, None),)
+        cloud_blocks = ((128, 1, None), (1024, 1, None))
+
+        layers, channels_point, _ = create_pointnet_components(
+            blocks=point_blocks, in_channels=self.in_channels, with_se=False
+        )
+        self.point_features = nn.Sequential(*layers)
+
+        layers, channels_cloud, _ = create_pointnet_components(
+            blocks=cloud_blocks, in_channels=2*channels_point, with_se=False,
+        )
+        self.cloud_features = nn.Sequential(*layers)
+
+    def forward(self, x):
+
+        point_feat = self.point_features(x)
+
+        cloud_feat = self.cloud_features(x)
+        cloud_feat, _ = torch.max(cloud_feat, dim=-1, keepdim=True)
+
+        return cloud_feat, point_feat
+
+
 class InstanceSegmentationPointDanSimple(nn.Module):
 
     def __init__(self, num_classes=3, extra_feature_channels=1, width_multiplier=1):
@@ -183,9 +212,9 @@ class InstanceSegmentationPointDanSimple(nn.Module):
         self.in_channels = extra_feature_channels + 3
         self.num_classes = num_classes
 
-        self.g = PointnetG(self.in_channels)
+        self.g = PointnetSimpleGenerator(self.in_channels)
 
-        channels_point = 128
+        channels_point = 64
         channels_cloud = 1024
 
         layers, _ = create_mlp_components(
@@ -212,7 +241,7 @@ class InstanceSegmentationPointDanSimple(nn.Module):
         assert one_hot_vectors.dim() == 3  # [B, C, N]
 
         features = features.unsqueeze(-1)
-        cloud_feat, point_feat, feat_ori, node_idx = self.g(features, node=True)
+        cloud_feat, point_feat = self.g(features)
 
         if adaptation:
             cloud_feat = grad_reverse(cloud_feat, constant)
