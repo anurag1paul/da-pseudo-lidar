@@ -7,7 +7,7 @@ from datasets.vkitti import FrustumVkitti
 from datasets.vkitti.attributes import vkitti_attributes as vkitti
 from meters.kitti import MeterFrustumKitti
 from modules.frustum import FrustumPointNetLoss
-from evaluate.evaluate import evaluate
+from evaluate.kitti.frustum.eval import evaluate
 from utils.config import Config, configs
 
 # data configs
@@ -53,7 +53,7 @@ configs.kitti_dataset.class_name_to_size_template_id = configs.data.class_name_t
 configs.evaluate.fn = evaluate
 configs.evaluate.batch_size = 32
 configs.evaluate.dataset = Config(FrustumKitti)
-configs.evaluate.dataset.from_rgb_detection = False
+configs.evaluate.dataset.from_rgb_detection = True
 configs.evaluate.dataset.root = 'data/kitti/frustum/frustum_data'
 configs.evaluate.dataset.split = "val"
 configs.evaluate.dataset.num_points = 1024
