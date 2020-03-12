@@ -1,10 +1,10 @@
 import torch.optim as optim
 
-from models.frustum_net import FrustumPointDAN
+from models.frustum_net import FrustumPointDanParallel
 from utils.config import Config, configs
 
 # model
-configs.model = Config(FrustumPointDAN)
+configs.model = Config(FrustumPointDanParallel)
 configs.model.num_classes = configs.data.num_classes
 configs.model.num_heading_angle_bins = configs.data.num_heading_angle_bins
 configs.model.num_size_templates = configs.data.num_size_templates

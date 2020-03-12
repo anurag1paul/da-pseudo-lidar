@@ -10,7 +10,7 @@ from models.segmentation import *
 from models.center_regression_net import CenterRegressionNet, \
     CenterRegressionPointDan
 
-__all__ = ['FrustumPointNet', 'FrustumPointNet2',
+__all__ = ['FrustumPointNet', 'FrustumPointNet2', "FrustumPointDanParallel",
            'FrustumPVCNNE', 'FrustumPointDAN', "FrustumPointDAN2"]
 
 
@@ -291,3 +291,75 @@ class FrustumPointDAN2(nn.Module):
                        "box_mmd_feat": box_mmd_feat}
 
         return outputs
+
+
+class FrustumPointDanParallel(nn.Module):
+    def __init__(self, num_classes, num_heading_angle_bins, num_size_templates, num_points_per_object,
+                 size_templates, extra_feature_channels=1, width_multiplier=1):
+        super().__init__()
+        if not isinstance(width_multiplier, (list, tuple)):
+            width_multiplier = [width_multiplier] * 3
+        self.in_channels = 3 + extra_feature_channels
+        self.num_classes = num_classes
+        self.num_heading_angle_bins = num_heading_angle_bins
+        self.num_size_templates = num_size_templates
+        self.num_points_per_object = num_points_per_object
+
+        self.inst_seg_net = InstanceSegmentationPointDAN(num_classes=num_classes,
+                                                      extra_feature_channels=extra_feature_channels,
+                                                      width_multiplier=width_multiplier[0])
+        self.center_reg_nets = [CenterRegressionNet(num_classes=num_classes,
+                                                    width_multiplier=width_multiplier[1])
+                                for _ in range(2)]
+
+        self.box_est_nets = [BoxEstimationPointNet(num_classes=num_classes, num_heading_angle_bins=num_heading_angle_bins,
+                                              num_size_templates=num_size_templates,
+                                              width_multiplier=width_multiplier[2])
+                             for _ in range(2)]
+        self.register_buffer('size_templates', size_templates.view(1, self.num_size_templates, 3))
+
+    def forward(self, inputs):
+        features = inputs['features']
+        one_hot_vectors = inputs['one_hot_vectors']
+        assert one_hot_vectors.dim() == 2
+
+        # foreground/background segmentation
+        masks = self.inst_seg_net({'features': features,
+                                   'one_hot_vectors': one_hot_vectors})
+
+        outputs_list = []
+
+        for i, mask_logits in enumerate(masks):
+            # mask out Background points
+            foreground_coords, foreground_coords_mean, _ = F.logits_mask(
+                coords=features[:, :3, :], logits=mask_logits,
+                num_points_per_object=self.num_points_per_object
+            )
+            # center regression
+            delta_coords = self.center_reg_net[i]({'coords': foreground_coords,
+                                                'one_hot_vectors': one_hot_vectors})
+            foreground_coords = foreground_coords - delta_coords.unsqueeze(-1)
+            # box estimation
+            estimation = self.box_est_net[i]({'coords': foreground_coords,
+                                           'one_hot_vectors': one_hot_vectors})
+            estimations = estimation.split([3, self.num_heading_angle_bins,
+                                            self.num_heading_angle_bins,
+                                            self.num_size_templates,
+                                            self.num_size_templates * 3], dim=-1)
+
+            # parse results
+            outputs = dict()
+            outputs['mask_logits'] = mask_logits
+            outputs['center_reg'] = foreground_coords_mean + delta_coords
+            outputs['center'] = estimations[0] + outputs['center_reg']
+            outputs['heading_scores'] = estimations[1]
+            outputs['heading_residuals_normalized'] = estimations[2]
+            outputs['heading_residuals'] = estimations[2] * (np.pi / self.num_heading_angle_bins)
+            outputs['size_scores'] = estimations[3]
+            size_residuals_normalized = estimations[4].view(-1, self.num_size_templates, 3)
+            outputs['size_residuals_normalized'] = size_residuals_normalized
+            outputs['size_residuals'] = size_residuals_normalized * self.size_templates
+
+            outputs_list.append(outputs)
+
+        return outputs_list

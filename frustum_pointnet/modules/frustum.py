@@ -8,7 +8,7 @@ from modules.loss import discrepancy_loss
 
 __all__ = ['FrustumPointNetLoss', 'get_box_corners_3d',
            'FrustumPointDANLoss', 'FrustumPointDANLoss2',
-           'FrustumDanDiscrepancyLoss']
+           'FrustumDanDiscrepancyLoss', "FrustumPointDanParallelLoss"]
 
 
 class FrustumPointNetLoss(nn.Module):
@@ -394,3 +394,19 @@ def get_box_corners_3d(centers, headings, sizes, with_flip=False):
     # R = torch.stack([c, z, s, z, o, z, -s, z, c], dim=1).view(-1, 3, 3)  # (N, 3, 3)
     # corners = torch.matmul(R, corners) + centers.unsqueeze(2)  # (N, 3, 8)
     # corners = corners.transpose(1, 2)  # (N, 8, 3)
+
+
+class FrustumPointDanParallelLoss(nn.Module):
+    def __init__(self, num_heading_angle_bins, num_size_templates, size_templates, box_loss_weight=1.0,
+                 corners_loss_weight=10.0, heading_residual_loss_weight=20.0, size_residual_loss_weight=20.0):
+        super().__init__()
+        self.frustum_loss = FrustumPointNetLoss(num_heading_angle_bins, num_size_templates, size_templates,
+                                           box_loss_weight, corners_loss_weight, heading_residual_loss_weight,
+                                           size_residual_loss_weight)
+
+    def forward(self, outputs_list):
+        loss = 0
+        for outputs in outputs_list:
+            loss += self.frustum_loss(outputs)
+
+        return loss
