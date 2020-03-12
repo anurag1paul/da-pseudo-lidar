@@ -174,3 +174,53 @@ class InstanceSegmentationPointDAN(nn.Module):
             return y1, y2, node_features
         else:
             return y1, y2
+
+
+class InstanceSegmentationPointDanSimple(nn.Module):
+
+    def __init__(self, num_classes=3, extra_feature_channels=1, width_multiplier=1):
+        super(InstanceSegmentationPointDanSimple, self).__init__()
+        self.in_channels = extra_feature_channels + 3
+        self.num_classes = num_classes
+
+        self.g = PointnetG(self.in_channels)
+
+        channels_point = 128
+        channels_cloud = 1024
+
+        layers, _ = create_mlp_components(
+            in_channels=(channels_point + channels_cloud + self.num_classes),
+            out_channels=[512, 256, 128, 128, 0.5, 2],
+            classifier=True, dim=2, width_multiplier=width_multiplier
+        )
+        self.c1 = nn.Sequential(*layers)
+
+        layers, _ = create_mlp_components(
+            in_channels=(channels_point + channels_cloud + self.num_classes),
+            out_channels=[512, 256, 128, 128, 0.5, 2],
+            classifier=True, dim=2, width_multiplier=width_multiplier
+        )
+        self.c2 = nn.Sequential(*layers)
+
+    def forward(self, inputs, constant=1, adaptation=False):
+
+        features = inputs['features']
+        num_points = features.size(-1)
+        one_hot_vectors = inputs['one_hot_vectors'].unsqueeze(-1).repeat(
+            [1, 1, num_points])
+
+        assert one_hot_vectors.dim() == 3  # [B, C, N]
+
+        features = features.unsqueeze(-1)
+        cloud_feat, point_feat, feat_ori, node_idx = self.g(features, node=True)
+
+        if adaptation:
+            cloud_feat = grad_reverse(cloud_feat, constant)
+
+        cloud_feat = cloud_feat.repeat([1, 1, num_points])
+        cls_input = torch.cat([one_hot_vectors, point_feat, cloud_feat], dim=1)
+
+        y1 = self.c1(cls_input)
+        y2 = self.c2(cls_input)
+
+        return y1, y2

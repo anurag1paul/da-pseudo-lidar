@@ -5,7 +5,8 @@ import torch.nn as nn
 
 import modules.functional as F
 from models.box_estimation import *
-from models.point_dan.point_dan import InstanceSegmentationPointDAN
+from models.point_dan.point_dan import InstanceSegmentationPointDAN, \
+    InstanceSegmentationPointDanSimple
 from models.segmentation import *
 from models.center_regression_net import CenterRegressionNet, \
     CenterRegressionPointDan
@@ -104,9 +105,11 @@ class FrustumPVCNNE(FrustumNet):
 
 
 class FrustumPointDAN(FrustumNet):
-    def __init__(self, num_classes, num_heading_angle_bins, num_size_templates, num_points_per_object,
-                 size_templates, extra_feature_channels=1, width_multiplier=1):
-        super().__init__(num_classes=num_classes, instance_segmentation_net=InstanceSegmentationPointDAN,
+    def __init__(self, num_classes, num_heading_angle_bins, num_size_templates,
+                 num_points_per_object, size_templates, extra_feature_channels=1,
+                 width_multiplier=1,
+                 instance_segmentation_net=InstanceSegmentationPointDAN):
+        super().__init__(num_classes=num_classes, instance_segmentation_net=instance_segmentation_net,
                          box_estimation_net=BoxEstimationPointNet, num_heading_angle_bins=num_heading_angle_bins,
                          num_size_templates=num_size_templates, num_points_per_object=num_points_per_object,
                          size_templates=size_templates, extra_feature_channels=extra_feature_channels,
@@ -155,6 +158,20 @@ class FrustumPointDAN(FrustumNet):
         outputs['size_residuals'] = size_residuals_normalized * self.size_templates
 
         return outputs
+
+
+class FrustumPointDanSimple(FrustumPointDAN):
+    def __init__(self, num_classes, num_heading_angle_bins, num_size_templates,
+                 num_points_per_object, size_templates, extra_feature_channels=1,
+                 width_multiplier=1):
+        super().__init__(num_classes=num_classes,
+                         instance_segmentation_net=InstanceSegmentationPointDanSimple,
+                         num_heading_angle_bins=num_heading_angle_bins,
+                         num_size_templates=num_size_templates,
+                         num_points_per_object=num_points_per_object,
+                         size_templates=size_templates,
+                         extra_feature_channels=extra_feature_channels,
+                         width_multiplier=width_multiplier)
 
 
 class FrustumPointDAN2(nn.Module):
