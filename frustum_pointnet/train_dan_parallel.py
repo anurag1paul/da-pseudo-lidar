@@ -290,10 +290,10 @@ def main():
 
     cls_params = [{'params':model.module.inst_seg_net.c1.parameters()},
                   {'params':model.module.inst_seg_net.c2.parameters()},
-                  {'params':model.module.center_reg_net[0].parameters()},
-                  {'params':model.module.center_reg_net[1].parameters()},
-                  {'params':model.module.box_est_net[0].parameters()},
-                  {'params':model.module.box_est_net[1].parameters()}]
+                  {'params':model.module.center_reg_nets[0].parameters()},
+                  {'params':model.module.center_reg_nets[1].parameters()},
+                  {'params':model.module.box_est_nets[0].parameters()},
+                  {'params':model.module.box_est_nets[1].parameters()}]
 
     dis_params = [{'params':model.module.inst_seg_net.g.parameters()},
                   {'params':model.module.inst_seg_net.attention_s.parameters()},

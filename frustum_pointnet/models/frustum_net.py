@@ -354,11 +354,11 @@ class FrustumPointDanParallel(nn.Module):
                 num_points_per_object=self.num_points_per_object
             )
             # center regression
-            delta_coords = self.center_reg_net[i]({'coords': foreground_coords,
+            delta_coords = self.center_reg_nets[i]({'coords': foreground_coords,
                                                 'one_hot_vectors': one_hot_vectors})
             foreground_coords = foreground_coords - delta_coords.unsqueeze(-1)
             # box estimation
-            estimation = self.box_est_net[i]({'coords': foreground_coords,
+            estimation = self.box_est_nets[i]({'coords': foreground_coords,
                                            'one_hot_vectors': one_hot_vectors})
             estimations = estimation.split([3, self.num_heading_angle_bins,
                                             self.num_heading_angle_bins,
