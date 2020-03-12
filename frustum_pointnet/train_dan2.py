@@ -414,6 +414,13 @@ def main():
 
             # evaluate
             meters = dict()
+            for split, loader in source_loaders.items():
+                if split != 'train':
+                    meters.update(evaluate(model, loader=loader, split=split))
+            for k, meter in meters.items():
+                print(f'Source [{k}] = {meter:2f}')
+
+            meters = dict()
             for split, loader in target_loaders.items():
                 if split != 'train':
                     meters.update(evaluate(model, loader=loader, split=split))
@@ -426,7 +433,7 @@ def main():
                 meters[m + '_best'] = best_metrics[m]
             # log in tensorboard
             for k, meter in meters.items():
-                print(f'[{k}] = {meter:2f}')
+                print(f'Target [{k}] = {meter:2f}')
                 writer.add_scalar(k, meter, current_step)
 
             # save checkpoint
