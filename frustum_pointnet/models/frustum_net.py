@@ -12,7 +12,8 @@ from models.center_regression_net import CenterRegressionNet, \
     CenterRegressionPointDan
 
 __all__ = ['FrustumPointNet', 'FrustumPointNet2', "FrustumPointDanParallel",
-           'FrustumPVCNNE', 'FrustumPointDAN', "FrustumPointDAN2"]
+           'FrustumPVCNNE', 'FrustumPointDAN', "FrustumPointDAN2",
+           "FrustumPointDanSimple"]
 
 
 class FrustumNet(nn.Module):
