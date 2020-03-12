@@ -404,9 +404,9 @@ class FrustumPointDanParallelLoss(nn.Module):
                                            box_loss_weight, corners_loss_weight, heading_residual_loss_weight,
                                            size_residual_loss_weight)
 
-    def forward(self, outputs_list):
+    def forward(self, inputs_list, targets):
         loss = 0
-        for outputs in outputs_list:
-            loss += self.frustum_loss(outputs)
+        for inputs in inputs_list:
+            loss += self.frustum_loss(inputs, targets)
 
         return loss
