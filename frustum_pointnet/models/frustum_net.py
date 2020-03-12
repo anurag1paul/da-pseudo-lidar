@@ -380,4 +380,12 @@ class FrustumPointDanParallel(nn.Module):
 
             outputs_list.append(outputs)
 
-        return outputs_list
+        if self.training:
+            return outputs_list
+        else:
+            outputs = outputs_list[0]
+            for k, v in outputs_list[1].items():
+                outputs[k] = (outputs[k] + v) / 2.0
+
+            return outputs
+
