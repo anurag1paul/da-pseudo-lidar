@@ -10,6 +10,27 @@ import cv2
 
 from PIL import Image
 
+transform_mat = {"Scene01": {"15-deg-left": -6/12.0, "30-deg-left":-5/12.0,
+                             "15-deg-right":-8/12.0, "30-deg-right":-9/12.0,
+                             "clone":-7/12.0, "morning":-7/12.0, "rain":-7/12.0,
+                             "fog":-7/12.0, "overcast":-7/12.0, "sunset":-7/12.0},
+                 "Scene02": {"15-deg-left": 4/12.0, "30-deg-left": 5/12.0,
+                             "15-deg-right":2/12.0, "30-deg-right":1/12.0,
+                             "clone":3/12.0, "morning": 3/12.0, "rain": 3/12.0,
+                             "fog":3/12.0, "overcast": 3/12.0, "sunset": 3/12.0},
+                 "Scene06": {"15-deg-left": 0/12.0, "30-deg-left": 1/12.0,
+                             "15-deg-right": -2/12.0, "30-deg-right":-3/12.0,
+                             "clone":-1/12.0, "morning": -1/12.0, "rain": -1/12.0,
+                             "fog":-1/12.0, "overcast": -1/12.0, "sunset": -1/12.0},
+                 "Scene20": {"15-deg-left": -9/12.0, "30-deg-left": -8/12.0,
+                             "15-deg-right": -11/12.0, "30-deg-right":-12/12.0,
+                             "clone":-10/12.0, "morning": -10/12.0, "rain": -10/12.0,
+                             "fog":-10/12.0, "overcast": -10/12.0, "sunset": -10/12.0},
+                 "Scene18": {"15-deg-left": -1.5/12.0, "30-deg-left": -0.5/12.0,
+                             "15-deg-right": -3.5/12.0, "30-deg-right":-4.5/12.0,
+                             "clone": -2.5/12.0, "morning": -2.5/12.0, "rain": -2.5/12.0,
+                             "fog": -2.5/12.0, "overcast": -2.5/12.0, "sunset": -2.5/12.0}}
+
 
 class Object3d(object):
     """ 3d object label """
@@ -83,20 +104,25 @@ class Calibration(object):
         right x, down y, front z
     """
 
-    def __init__(self, intrinsic_values, extrinsic_values):
+    def __init__(self, scene, subscene, intrinsic_values, extrinsic_values):
         # Projection matrix from rect camera coord to image2 coord
         self.P = self.process_intrinsic(intrinsic_values)
 
         # Rotation from reference camera coord to rect camera coord
-        # self.extrinsics = self.process_extrinsic(extrinsic_values)
-        # self.R0 = np.linalg.inv(self.extrinsics[:3, :3])
-        R0= "9.999239000000e-01 9.837760000000e-03 -7.445048000000e-03 -9.869795000000e-03 9.999421000000e-01 -4.278459000000e-03 7.402527000000e-03 4.351614000000e-03 9.999631000000e-01"
-        self.R0 = np.reshape(np.array([float(x) for x in R0.split()]), [3,3])
+        self.extrinsics = self.process_extrinsic(extrinsic_values)
+        self.R0 = np.linalg.inv(self.extrinsics[:3, :3])
+        # R0= "9.999239000000e-01 9.837760000000e-03 -7.445048000000e-03 -9.869795000000e-03 9.999421000000e-01 -4.278459000000e-03 7.402527000000e-03 4.351614000000e-03 9.999631000000e-01"
+        # self.R0 = np.reshape(np.array([float(x) for x in R0.split()]), [3,3])
 
+        # transform = {"Scene01": -np.pi / 2.0, "Scene02": np.pi/4.0}
         velo = "7.533745000000e-03 -9.999714000000e-01 -6.166020000000e-04 -4.069766000000e-03 1.480249000000e-02 7.280733000000e-04 -9.998902000000e-01 -7.631618000000e-02 9.998621000000e-01 7.523790000000e-03 1.480755000000e-02 -2.717806000000e-01"
         self.V2C = np.array([float(x) for x in velo.split()])
         self.V2C = np.reshape(self.V2C, [3,4])
         self.C2V = inverse_rigid_trans(self.V2C)
+        angle = transform_mat[scene][subscene] * np.pi # morning
+        self.C2V = np.dot(rotz(angle), inverse_rigid_trans(self.V2C))
+        self.V2C = inverse_rigid_trans(self.C2V)
+
 
         # Camera intrinsics and extrinsics
         self.c_u = self.P[0, 2]
@@ -138,7 +164,9 @@ class Calibration(object):
 
     def project_ref_to_velo(self, pts_3d_ref):
         pts_3d_ref = self.cart2hom(pts_3d_ref) # nx4
-        return np.dot(pts_3d_ref, np.transpose(self.C2V))
+        temp = np.dot(pts_3d_ref, np.transpose(self.C2V))
+        # temp[:,0], temp[:, 1] = temp[:, 1], temp[:, 0]
+        return temp
 
     def project_rect_to_ref(self, pts_3d_rect):
         ''' Input and Output are nx3 points '''

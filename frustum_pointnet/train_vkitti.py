@@ -166,10 +166,16 @@ def main():
 
     print(f'\n==> loading dataset "{configs.dataset}"')
     dataset = configs.dataset()
+    kitti_val_dataset = configs.kitti_dataset()
     loaders = {}
     for split in dataset:
         loaders[split] = DataLoader(
             dataset[split], shuffle=(split == 'train'), batch_size=configs.train.batch_size,
+            num_workers=configs.data.num_workers, pin_memory=True,
+            worker_init_fn=lambda worker_id: np.random.seed(seed + worker_id)
+        )
+    kitti_val_loader = DataLoader(
+            kitti_val_dataset["val"], shuffle=False, batch_size=configs.train.batch_size,
             num_workers=configs.data.num_workers, pin_memory=True,
             worker_init_fn=lambda worker_id: np.random.seed(seed + worker_id)
         )
@@ -232,6 +238,11 @@ def main():
             for split, loader in loaders.items():
                 if split != 'train':
                     meters.update(evaluate(model, loader=loader, split=split))
+
+            kitti_meters = dict()
+            kitti_meters.update(evaluate(model, loader=kitti_val_loader, split="val"))
+            for k, meter in kitti_meters.items():
+                print(f'KITTI [{k}] = {meter:2f}')
 
             # check whether it is the best
             best = {m: False for m in configs.train.metrics}

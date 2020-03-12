@@ -26,4 +26,3 @@ vkitti_attributes.class_name_to_size_template = {
     'Tram': np.array([16.17150617, 2.53246914, 3.53079012]),
     'Misc': np.array([3.64300781, 1.54298177, 1.92320313])
     }
-

@@ -39,6 +39,16 @@ configs.dataset.random_shift = True
 configs.dataset.frustum_rotate = True
 configs.dataset.from_rgb_detection = False
 
+configs.kitti_dataset = Config(FrustumKitti)
+configs.kitti_dataset.from_rgb_detection = False
+configs.kitti_dataset.root = 'data/kitti/frustum/frustum_data'
+configs.kitti_dataset.split = "val"
+configs.kitti_dataset.num_points = 1024
+configs.kitti_dataset.frustum_rotate = True
+configs.kitti_dataset.classes = configs.data.classes
+configs.kitti_dataset.num_heading_angle_bins = configs.data.num_heading_angle_bins
+configs.kitti_dataset.class_name_to_size_template_id = configs.data.class_name_to_size_template_id
+
 # evaluate configs
 configs.evaluate.fn = evaluate
 configs.evaluate.batch_size = 32
@@ -47,13 +57,14 @@ configs.evaluate.dataset.from_rgb_detection = True
 configs.evaluate.dataset.root = 'data/kitti/frustum/frustum_data'
 configs.evaluate.dataset.split = "val"
 configs.evaluate.dataset.num_points = 1024
+configs.evaluate.dataset.frustum_rotate = True
 configs.evaluate.dataset.classes = configs.data.classes
 configs.evaluate.dataset.num_heading_angle_bins = configs.data.num_heading_angle_bins
 configs.evaluate.dataset.class_name_to_size_template_id = configs.data.class_name_to_size_template_id
 
 # train configs
 configs.train = Config()
-configs.train.num_epochs = 100
+configs.train.num_epochs = 200
 configs.train.batch_size = 32
 
 # train: meters

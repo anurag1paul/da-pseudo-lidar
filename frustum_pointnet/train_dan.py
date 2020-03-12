@@ -176,12 +176,12 @@ def main():
             optimizer_cls.zero_grad()
 
             # Local Alignment
-            feat_node_s = model.module.inst_seg_net({'features': inputs['features'],
+            _, _, feat_node_s = model.module.inst_seg_net({'features': inputs['features'],
                                               'one_hot_vectors': inputs[
                                                   'one_hot_vectors']},
                                              node_adaptation_s=True)
 
-            feat_node_t = model.module.inst_seg_net({'features': inputs_t['features'],
+            _, _, feat_node_t = model.module.inst_seg_net({'features': inputs_t['features'],
                                               'one_hot_vectors': inputs_t[
                                                   'one_hot_vectors']},
                                              node_adaptation_t=True)
@@ -381,6 +381,13 @@ def main():
 
             # evaluate
             meters = dict()
+            for split, loader in source_loaders.items():
+                if split != 'train':
+                    meters.update(evaluate(model, loader=loader, split=split))
+            for k, meter in meters.items():
+                print(f'Source [{k}] = {meter:2f}')
+
+            meters = dict()
             for split, loader in target_loaders.items():
                 if split != 'train':
                     meters.update(evaluate(model, loader=loader, split=split))
@@ -393,7 +400,7 @@ def main():
                 meters[m + '_best'] = best_metrics[m]
             # log in tensorboard
             for k, meter in meters.items():
-                print(f'[{k}] = {meter:2f}')
+                print(f'Target [{k}] = {meter:2f}')
                 writer.add_scalar(k, meter, current_step)
 
             # save checkpoint
