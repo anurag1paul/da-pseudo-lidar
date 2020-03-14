@@ -160,10 +160,11 @@ class BoxEstimationSimpleDanNet(nn.Module):
         one_hot_vectors = inputs['one_hot_vectors']
         assert one_hot_vectors.dim() == 2  # [B, C]
 
-        point_feat = self.g(coords)
+        features, _ = self.g((coords, coords))
+        point_feat = features.max(dim=-1, keepdim=False).values
 
         if adaptation:
-            point_feat = grad_reverse(point_feat, constant)
+            point_feat = grad_reverse(features, constant)
 
         cls_input = torch.cat([point_feat, one_hot_vectors], dim=1)
 
