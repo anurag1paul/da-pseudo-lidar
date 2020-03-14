@@ -160,7 +160,6 @@ class BoxEstimationSimpleDanNet(nn.Module):
         one_hot_vectors = inputs['one_hot_vectors']
         assert one_hot_vectors.dim() == 2  # [B, C]
 
-        coords = coords.unsqueeze(-1)
         point_feat = self.g(coords)
 
         if adaptation:
