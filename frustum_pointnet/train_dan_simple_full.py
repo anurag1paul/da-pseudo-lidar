@@ -175,11 +175,8 @@ def main():
 
             # Gen Training
             for _ in range(configs.train.gen_num_train):
-                pred_t1, pred_t2 = model.module.inst_seg_net(
-                {'features': inputs_t['features'],
-                 'one_hot_vectors': inputs_t['one_hot_vectors']},
-                constant=cons, adaptation=True)
-                loss_adv = - 1 * discrepancy(pred_t1, pred_t2)
+                pred_t = model(inputs_t, cons, True)
+                loss_adv = - 1 * discrepancy(pred_t)
                 loss_adv.backward()
                 loss_adv_total += loss_adv.item() * batch_size
                 optimizer_g.step()
