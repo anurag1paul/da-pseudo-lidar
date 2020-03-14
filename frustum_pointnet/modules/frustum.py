@@ -337,8 +337,8 @@ class FrustumDanDiscrepancyLoss(nn.Module):
         heading_loss = discrepancy_loss(heading_scores1, heading_scores2)
         size_loss = discrepancy_loss(size_scores1, size_scores2)
 
-        center_loss = PF.huber_loss(torch.norm(center2 - center1, dim=-1), delta=2.0)
-        center_reg_loss = PF.huber_loss(torch.norm(center_reg2 - center_reg1, dim=-1), delta=1.0)
+        center_loss = F.smooth_l1_loss(center1, center2)
+        center_reg_loss = F.smooth_l1_loss(center_reg1, center_reg2)
 
         # Summing up
         loss = mask_loss + self.box_loss_weight * (
