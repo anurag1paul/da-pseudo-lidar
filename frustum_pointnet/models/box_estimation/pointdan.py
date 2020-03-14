@@ -130,6 +130,7 @@ class BoxEstimationSimpleDanNet(nn.Module):
                  width_multiplier=1, voxel_resolution_multiplier=1):
         super(BoxEstimationSimpleDanNet, self).__init__()
 
+        self.in_channels = 3
         self.num_classes = num_classes
         blocks = ((128, 2, None), (256, 1, None), (512, 1, None))
 
