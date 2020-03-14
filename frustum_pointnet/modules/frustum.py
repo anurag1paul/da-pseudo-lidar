@@ -7,7 +7,7 @@ import modules.functional as PF
 from modules.loss import discrepancy_loss
 
 __all__ = ['FrustumPointNetLoss', 'get_box_corners_3d',
-           'FrustumPointDANLoss', 'FrustumPointDANLoss2',
+           'FrustumPointDANLoss', 'FrustumFullPointDanLoss',
            'FrustumDanDiscrepancyLoss', "FrustumPointDanParallelLoss"]
 
 
@@ -175,7 +175,7 @@ class FrustumPointDANLoss(nn.Module):
         return loss
 
 
-class FrustumPointDANLoss2(nn.Module):
+class FrustumFullPointDanLoss(nn.Module):
     def __init__(self, num_heading_angle_bins, num_size_templates, size_templates, box_loss_weight=1.0,
                  corners_loss_weight=10.0, heading_residual_loss_weight=20.0, size_residual_loss_weight=20.0):
         super().__init__()

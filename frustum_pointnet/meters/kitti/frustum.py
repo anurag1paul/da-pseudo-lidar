@@ -67,11 +67,11 @@ class MeterFrustumKitti:
             iou_3d, iou_2d = get_box_iou_3d(corners.cpu().numpy(), corners_target.cpu().numpy())
             self.iou_2d_sum += iou_2d.sum()
             self.iou_3d_sum += iou_3d.sum()
-            self.iou_3d_corrent_num += np.sum(iou_3d >= 0.5)
+            self.iou_3d_corrent_num += np.sum(iou_3d >= 0.7)
             self.total_seen_num += batch_size
             for cls, cls_id in self.class_name_to_class_id.items():
                 mask = (class_id_target == cls_id)
-                self.iou_3d_corrent_num_per_class[cls] += np.sum(iou_3d[mask] >= (0.5 if cls == 'Car' else 0.5))
+                self.iou_3d_corrent_num_per_class[cls] += np.sum(iou_3d[mask] >= (0.7 if cls == 'Car' else 0.5))
                 self.total_seen_num_per_class[cls] += np.sum(mask)
 
     def compute(self):

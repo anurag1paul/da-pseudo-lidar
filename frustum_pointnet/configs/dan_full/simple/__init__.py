@@ -7,7 +7,7 @@ from datasets.vkitti.attributes import vkitti_attributes as vkitti
 from datasets.vkitti import FrustumVkitti
 from meters.kitti import MeterFrustumKitti
 from modules.frustum import FrustumFullPointDanLoss, FrustumDanDiscrepancyLoss
-from evaluate.evaluate import evaluate
+from evaluate.kitti.frustum.eval import evaluate
 from utils.config import Config, configs
 
 # data configs
@@ -56,7 +56,7 @@ configs.evaluate.batch_size = 32
 configs.evaluate.dataset = Config(FrustumKitti)
 configs.evaluate.dataset.root = 'data/kitti/frustum/frustum_data'
 configs.evaluate.dataset.split = "val"
-configs.evaluate.dataset.from_rgb_detection = False
+configs.evaluate.dataset.from_rgb_detection = True
 configs.evaluate.dataset.frustum_rotate = True
 configs.evaluate.dataset.num_points = 1024
 configs.evaluate.dataset.classes = configs.data.classes
@@ -96,7 +96,7 @@ configs.train.criterion.size_residual_loss_weight = 20.0
 configs.train.discrepancy = Config(FrustumDanDiscrepancyLoss)
 configs.train.discrepancy.box_loss_weight = 1.0
 
-configs.train.gen_num_train = 2
+configs.train.gen_num_train = 1
 
 # train: optimizer
 configs.train.base_lr = 5e-4
@@ -107,7 +107,3 @@ configs.train.optimizer_g.lr = configs.train.base_lr
 configs.train.optimizer_cls = Config(optim.Adam)
 configs.train.optimizer_cls.lr = 2 * configs.train.base_lr
 configs.train.optimizer_cls.weight_decay = 5e-4
-
-configs.train.optimizer_dis = Config(optim.Adam)
-configs.train.optimizer_dis.lr = configs.train.base_lr
-configs.train.optimizer_dis.weight_decay = 5e-4
