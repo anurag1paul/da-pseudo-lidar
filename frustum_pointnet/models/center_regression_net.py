@@ -150,7 +150,7 @@ class CenterRegressionSimpleDanNet(nn.Module):
         one_hot_vectors = inputs['one_hot_vectors']
         assert one_hot_vectors.dim() == 2  # [B, C]
 
-        features = self.features(coords)
+        features = self.g(coords)
         features = features.max(dim=-1, keepdim=False).values
 
         if adaptation:
