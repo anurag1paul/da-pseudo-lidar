@@ -190,7 +190,7 @@ def show_lidar_with_boxes(pc_velo, objects, calib,
         draw_gt_boxes3d([box3d_pts_3d_velo], fig=fig)
         mlab.plot3d([x1, x2], [y1, y2], [z1, z2], color=(0.5, 0.5, 0.5),
                     tube_radius=None, line_width=1, figure=fig)
-    # mlab.show(1)
+    mlab.show(1)
     return fig
 
 

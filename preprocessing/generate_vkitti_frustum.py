@@ -74,7 +74,8 @@ def demo(path):
     print(' -------- LiDAR points and 3D boxes in velodyne coordinate --------')
     #show_lidar_with_boxes(pc_velo, objects, calib)
     #raw_input()
-    show_lidar_with_boxes(pc_velo, objects, calib, True, img_width, img_height)
+    fig = show_lidar_with_boxes(pc_velo, objects, calib, True, img_width, img_height)
+    mlab.savefig("lidar_with_boxes.png", figure=fig, magnification=6.0)
     raw_input()
 
     # Visualize LiDAR points on images
