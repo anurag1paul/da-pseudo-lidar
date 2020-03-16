@@ -47,7 +47,7 @@ def demo(path):
     from vkitti.viz_util import draw_lidar, draw_lidar_simple, draw_gt_boxes3d
     dataset = vkitti_object(path, "train", "Scene01", "clone")
     data_idx = 25
-    cam_idx = 1
+    cam_idx = 0
 
     # Load data from dataset
     objects = dataset.get_label_objects(data_idx, cam_idx)

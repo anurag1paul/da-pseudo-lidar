@@ -1,10 +1,13 @@
 import argparse
 import os
 
+import imageio
+import imagesize
 import numpy as np
 import scipy.misc as ssc
+from PIL import Image
 
-from . import kitti_util
+import kitti_util
 
 
 def project_disp_to_points(calib, disp, max_high):
@@ -28,6 +31,8 @@ def project_depth_to_points(calib, depth, max_high):
     points = np.stack([c, r, depth])
     points = points.reshape((3, -1))
     points = points.T
+    mask = (c%2 == 0) & (r%2==0)
+    points = points[mask.reshape(-1)]
     cloud = calib.project_image_to_velo(points)
     valid = (cloud[:, 0] >= 0) & (cloud[:, 2] < max_high)
     return cloud[valid]
@@ -35,12 +40,14 @@ def project_depth_to_points(calib, depth, max_high):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate Libar')
     parser.add_argument('--calib_dir', type=str,
-                        default='~/Kitti/object/training/calib')
+                        default='../../kitti/training/calib')
     parser.add_argument('--disparity_dir', type=str,
-                        default='~/Kitti/object/training/predicted_disparity')
+                        default='../../kitti/training/generated_depth')
     parser.add_argument('--save_dir', type=str,
-                        default='~/Kitti/object/training/predicted_velodyne')
-    parser.add_argument('--max_high', type=int, default=1)
+                        default='../../kitti/training/velodyne')
+    parser.add_argument('--image_dir', type=str,
+                        default='../../kitti/training/image_2' )
+    parser.add_argument('--max_high', type=int, default=0.5)
     parser.add_argument('--is_depth', action='store_true')
 
     args = parser.parse_args()
@@ -55,21 +62,27 @@ if __name__ == '__main__':
     disps = sorted(disps)
 
     for fn in disps:
-        predix = fn[:-4]
+        predix = fn[:-9]
         calib_file = '{}/{}.txt'.format(args.calib_dir, predix)
         calib = kitti_util.Calibration(calib_file)
         # disp_map = ssc.imread(args.disparity_dir + '/' + fn) / 256.
         if fn[-3:] == 'png':
-            disp_map = ssc.imread(args.disparity_dir + '/' + fn)
+            disp_map = np.array(Image.open(args.disparity_dir + '/' + fn))
         elif fn[-3:] == 'npy':
-            disp_map = np.load(args.disparity_dir + '/' + fn)
+            disp_map = Image.fromarray(np.load(args.disparity_dir + '/' + fn))
+            size = imagesize.get(os.path.join(args.image_dir, "{}.png".format(predix)))
+            disp_map.resize(size, Image.BILINEAR)
+            disp_map = np.array(disp_map)
         else:
             assert False
         if not args.is_depth:
             disp_map = (disp_map*256).astype(np.uint16)/256.
             lidar = project_disp_to_points(calib, disp_map, args.max_high)
         else:
-            disp_map = (disp_map).astype(np.float32)/256.
+            disp_map = (disp_map).astype(np.float32) / 255.0 * 80
+            disp_map[disp_map > 50] = 50
+            disp_map[disp_map < 1] = 1
+            # print(np.max(disp_map), np.min(disp_map))
             lidar = project_depth_to_points(calib, disp_map, args.max_high)
         # pad 1 in the indensity dimension
         lidar = np.concatenate([lidar, np.ones((lidar.shape[0], 1))], 1)

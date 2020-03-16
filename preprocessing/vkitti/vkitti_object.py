@@ -85,11 +85,17 @@ class vkitti_object(object):
         objects = [utils.Object3d(row) for idx, row in label_data.iterrows()]
         return objects
 
-    def get_depth_map(self, idx, cam_idx):
+    def get_depth_map(self, idx, cam_idx, pred):
         assert (idx < self.num_samples)
         depth_dir = os.path.join(self.depth_dir, self.cameras[cam_idx])
-        filename = os.path.join(depth_dir, "depth_{:05d}.png".format(idx))
-        return utils.load_depth(filename)
+        if pred:
+            depth_dir = depth_dir.replace("depth", "pred_depth")
+            filename = os.path.join(depth_dir, "depth_{:05d}.npy".format(idx))
+            depth = np.load(filename) * 655.36 / 255.
+            return depth
+        else:
+            filename = os.path.join(depth_dir, "depth_{:05d}.png".format(idx))
+            return utils.load_depth(filename)
 
     def _get_label_data(self, cam_idx):
         bbox = pd.read_csv(self.label_file_2d, sep=" ", header=0)
@@ -102,16 +108,16 @@ class vkitti_object(object):
         data = pd.merge(data, info, on="trackID")
         return data
 
-    def get_lidar(self, idx, cam_idx):
+    def get_lidar(self, idx, cam_idx, pred=False):
         calib = self.get_calibration(idx, cam_idx)
-        depth = self.get_depth_map(idx, cam_idx)
+        depth = self.get_depth_map(idx, cam_idx, pred)
         velo = project_depth_to_points(calib, depth)
         velo = np.concatenate([velo, np.ones((velo.shape[0], 1))], 1)
         return velo
 
 
 def project_depth_to_points(calib, depth, max_high=1.0):
-    depth[depth > MAX_DEPTH] = -1
+    depth[depth > MAX_DEPTH] = MAX_DEPTH
     depth = np.round(depth, 2)
     rows, cols = depth.shape
     c, r = np.meshgrid(np.arange(cols), np.arange(rows))
