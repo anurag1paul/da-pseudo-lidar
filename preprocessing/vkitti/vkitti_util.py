@@ -116,6 +116,7 @@ class Calibration(object):
 
         # transform = {"Scene01": -np.pi / 2.0, "Scene02": np.pi/4.0}
         velo = "7.533745000000e-03 -9.999714000000e-01 -6.166020000000e-04 -4.069766000000e-03 1.480249000000e-02 7.280733000000e-04 -9.998902000000e-01 -7.631618000000e-02 9.998621000000e-01 7.523790000000e-03 1.480755000000e-02 -2.717806000000e-01"
+
         self.V2C = np.array([float(x) for x in velo.split()])
         self.V2C = np.reshape(self.V2C, [3,4])
         self.C2V = inverse_rigid_trans(self.V2C)

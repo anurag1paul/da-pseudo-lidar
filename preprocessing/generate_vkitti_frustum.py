@@ -45,8 +45,8 @@ def extract_pc_in_box2d(pc, box2d):
 def demo(path):
     import mayavi.mlab as mlab
     from vkitti.viz_util import draw_lidar, draw_lidar_simple, draw_gt_boxes3d
-    dataset = vkitti_object(path, "train", "Scene01", "clone")
-    data_idx = 25
+    dataset = vkitti_object(path, "train", "Scene06", "clone")
+    data_idx = 50
     cam_idx = 0
 
     # Load data from dataset
@@ -57,6 +57,7 @@ def demo(path):
     img_height, img_width, img_channel = img.shape
     print(('Image shape: ', img.shape))
     pc_velo = dataset.get_lidar(data_idx, cam_idx)[:,0:3]
+    print("Velo: ", pc_velo.shape)
     calib = dataset.get_calibration(data_idx, cam_idx)
 
     ## Draw lidar in rect camera coord
@@ -75,7 +76,7 @@ def demo(path):
     #show_lidar_with_boxes(pc_velo, objects, calib)
     #raw_input()
     fig = show_lidar_with_boxes(pc_velo, objects, calib, True, img_width, img_height)
-    mlab.savefig("lidar_with_boxes.png", figure=fig, magnification=6.0)
+    mlab.savefig("vkitti_velo_rot.png", figure=fig, magnification=6.0)
     raw_input()
 
     # Visualize LiDAR points on images
