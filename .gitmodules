@@ -5,3 +5,6 @@
 [submodule "frustum-pointnets"]
 	path = frustum-pointnets
 	url = git@github.com:charlesq34/frustum-pointnets.git
+[submodule "Synthetic2Realistic"]
+	path = Synthetic2Realistic
+	url = https://github.com/anurag1paul/Synthetic2Realistic.git
