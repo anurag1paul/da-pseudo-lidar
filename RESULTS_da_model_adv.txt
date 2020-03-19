@@ -1,0 +1,10 @@
+400 IMAGES ONLY
+
+
+[2020-03-04 09:01:20 da_model_adversarial.py:486] INFO     VKITTI Val_iter 0/100 loss = 0.1977 , batchtime = 4.91
+[2020-03-04 09:04:01 da_model_adversarial.py:486] INFO     VKITTI Val_iter 50/100 loss = 0.2242 , batchtime = 3.89
+[2020-03-04 09:07:23 da_model_adversarial.py:503] INFO     VKITTI epoch 21 validation metrics:  RMSE=5604.578   MAE=2453.519    REL=0.117       Lg10=0.041      time=369.1
+
+[2020-03-04 09:07:26 da_model_adversarial.py:524] INFO     KITTI Val_iter 0/100 loss = 0.9702 , batchtime = 1.37
+[2020-03-04 09:08:31 da_model_adversarial.py:524] INFO     KITTI Val_iter 50/100 loss = 0.9354 , batchtime = 1.85
+[2020-03-04 09:09:49 da_model_adversarial.py:542] INFO     KITTI epoch 21 validation metrics:   RMSE=411161.371 MAE=400570.526  REL=-1.001      Lg10=nan        time=145.6

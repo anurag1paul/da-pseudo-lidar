@@ -1,3 +1,3 @@
 # python3 submission_kitti.py --maxdisp 192 --model stackhourglass --KITTI 2015 --datapath /data/datasets/kitti/testing/  --loadmodel psmnet/pretrained/pretrained_model_KITTI2015.tar --save_figure --save_path results/kitti_pretrained
 
-python3 submission_kitti.py --maxdisp 192 --model basic_adv --KITTI 2015 --datapath /data/datasets/kitti/testing/  --loadmodel psmnet/trained_da_adv_wrongVal/finetune_4.tar --save_figure --save_path results/kitti_adv
+python3 submission_kitti.py --maxdisp 192 --model basic_adv --KITTI 2015 --datapath /data/datasets/kitti/testing/  --loadmodel psmnet/trained_da_adv/finetune_20.tar --save_figure --save_path results/kitti_adv

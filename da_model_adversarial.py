@@ -29,7 +29,7 @@ from psmnet.dataloader import KITTILoader_dataset3d as kitti_loader
 
 from psmnet.dataloader import VKittiLoader as VKitti
 
-
+from psmnet.metrics import AverageMeter, Result
 from psmnet.models import *
 
 parser = argparse.ArgumentParser(description='PSMNet')
@@ -62,7 +62,7 @@ parser.add_argument('--lr_scale', type=int, default=7, metavar='S',
 parser.add_argument('--split_file', default='Kitti/object/train.txt',
                     help='save model')
 parser.add_argument('--btrain', type=int, default=4)
-parser.add_argument('--num_workers', type=int, default=8)
+parser.add_argument('--num_workers', type=int, default=4)
 parser.add_argument('--start_epoch', type=int, default=1)
 
 parser.add_argument('--k-critic', type=int, default=1)
@@ -326,9 +326,19 @@ def train( source_data, target_data ):
 
 
 
-def test(imgL, imgR, disp_true, save_image = False, save_file_path = None):
+def test(imgL, imgR, disp_true,average_meter, save_image = False, save_file_path = None):
     model.eval()
-    
+
+    def convert_to_depth(disp):
+        disp[disp < 0] = 0
+        baseline = 0.54
+        mask = (disp > 0).type(torch.FloatTensor)
+        depth = 721 * baseline / (disp + 1. - mask)
+        rows, cols = depth.shape
+        c, r = np.meshgrid(np.arange(cols), np.arange(rows))
+        points = np.stack([c, r, depth])
+        return points
+        
     if args.cuda:
         imgL, imgR = imgL.cuda(), imgR.cuda()
 
@@ -342,6 +352,13 @@ def test(imgL, imgR, disp_true, save_image = False, save_file_path = None):
         print(img.shape)
         skimage.io.imsave(save_file_path,(img*256).astype('uint16'))
 
+    # import pdb
+    # pdb.set_trace()
+
+    # Compute Metrics
+    result = Result()
+    result.evaluate(pred_disp.data, disp_true.data)
+    average_meter.update(result, 0, 0, pred_disp.size(0))
 
     # computing 3-px error#
     true_disp = disp_true
@@ -385,7 +402,7 @@ def main():
         source_loader = loop_iterable(TrainImgLoader_vkitti)
         target_loader= loop_iterable(TrainImgLoader_kitti)
 
-        epoch_num_batches = len( TrainImgLoader_vkitti ) // args.iter_size
+        epoch_num_batches =  len( TrainImgLoader_vkitti ) // args.iter_size
         epoch_num_val_batches = int(len( ValImgLoader_vkitti ) // 10)
 
         if args.dummy_num_batches is not None:
@@ -437,6 +454,7 @@ def main():
 
 
         # save some output sample images
+        metrics_dummy = AverageMeter()
 
         # vkitti samples
         for batch_idx, (imgL, imgR, disp_L) in enumerate(ValImgLoader_vkitti):
@@ -444,7 +462,7 @@ def main():
             if batch_idx >= args.num_samples:
                 break
             save_file_path = val_sample_dir+'/vkitti_{}_{}.jpg'.format(epoch,batch_idx)
-            _ = test(imgL, imgR, disp_L, save_image = True,
+            _ = test(imgL, imgR, disp_L,metrics_dummy, save_image = True,
                                          save_file_path=save_file_path)
 
         # kitti samples - ON TRAIN SET
@@ -453,7 +471,7 @@ def main():
             if batch_idx >= args.num_samples:
                 break
             save_file_path = val_sample_dir+'/kitti_{}_{}.jpg'.format(epoch,batch_idx)
-            _ = test(imgL, imgR, disp_L, save_image = True,
+            _ = test(imgL, imgR, disp_L, metrics_dummy, save_image = True,
                                          save_file_path=save_file_path)
 
 
@@ -465,6 +483,7 @@ def main():
 
         # vkitti val
         total_val_loss = 0
+        metrics_vkitti = AverageMeter()
         val_zero_start_time = time.time()
 
         for batch_idx, (imgL, imgR, disp_L) in enumerate(ValImgLoader_vkitti):
@@ -472,7 +491,7 @@ def main():
             if batch_idx >= epoch_num_val_batches:
                 break
             val_start_time = time.time()
-            loss = test(imgL, imgR, disp_L)
+            loss = test(imgL, imgR, disp_L, metrics_vkitti)
             total_val_loss += loss
 
             if (batch_idx % 50 == 0 ):
@@ -480,16 +499,29 @@ def main():
                     batch_idx, epoch_num_val_batches, loss, time.time() - val_start_time))
 
 
+        avg_metrics_vkitti = metrics_vkitti.average()
 
-        log.info('epoch %d VKITTI total validation loss = %.4f , time = %.2f' % (
-        epoch, total_val_loss / epoch_num_val_batches, time.time() - val_zero_start_time) 
-             )
+        # log.info('epoch %d VKITTI total validation loss = %.4f , time = %.2f' % (
+        # epoch, total_val_loss / epoch_num_val_batches, time.time() - val_zero_start_time) 
+        #      )
+
+        log.info('VKITTI epoch {epoch} validation metrics:\t'
+            'RMSE={average.rmse:.3f}\t'
+            'MAE={average.mae:.3f}\t'
+            'REL={average.absrel:.3f}\t'
+            'Lg10={average.lg10:.3f}\t'
+            'time={time:.1f}\n'.format(
+            epoch=epoch,
+            average=avg_metrics_vkitti,
+            time= time.time() - val_zero_start_time ))
 
 
 
 
         # KITTI evaluation on TRAIN SET
         total_val_loss = 0
+        metrics_kitti = AverageMeter()
+
         val_zero_start_time = time.time()
 
         for batch_idx, (imgL, imgR, disp_L) in enumerate(TrainImgLoader_kitti):
@@ -497,7 +529,7 @@ def main():
             if batch_idx >= epoch_num_val_batches:
                 break
             val_start_time = time.time()
-            loss = test(imgL, imgR, disp_L)
+            loss = test(imgL, imgR, disp_L, metrics_kitti)
             total_val_loss += loss
 
             if (batch_idx % 50 == 0 ):
@@ -505,12 +537,22 @@ def main():
                     batch_idx, epoch_num_val_batches, loss, time.time() - val_start_time))
 
 
+        avg_metrics_kitti = metrics_kitti.average()
 
-        log.info('epoch %d KITTI total train set loss = %.4f , time = %.2f' % (
-        epoch, total_val_loss / epoch_num_val_batches, time.time() - val_zero_start_time) 
-             )
+        # log.info('epoch %d KITTI total train set loss = %.4f , time = %.2f' % (
+        # epoch, total_val_loss / epoch_num_val_batches, time.time() - val_zero_start_time) 
+        #      )
 
 
+        log.info('KITTI epoch {epoch} validation metrics:\t'
+            'RMSE={average.rmse:.3f}\t'
+            'MAE={average.mae:.3f}\t'
+            'REL={average.absrel:.3f}\t'
+            'Lg10={average.lg10:.3f}\t'
+            'time={time:.1f}\n'.format(
+            epoch=epoch,
+            average=avg_metrics_kitti,
+            time= time.time() - val_zero_start_time ))
 
 
 
@@ -540,23 +582,6 @@ def main():
 
 
 
-class AverageMeter(object):
-    """Computes and stores the average and current value"""
-
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
 
 if __name__ == '__main__':
     main()

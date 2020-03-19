@@ -1,1 +1,1 @@
-python3 submission_vkitti.py --maxdisp 192 --model basic_adv --datapath /data/datasets  --loadmodel psmnet/trained_da_adv_wrongVal/finetune_4.tar --save_figure --save_path results/vkitti_adv
+python3 submission_vkitti.py --maxdisp 192 --model basic_adv --datapath /data/datasets  --loadmodel psmnet/trained_da_adv/finetune_20.tar --save_figure --save_path results/vkitti_adv
