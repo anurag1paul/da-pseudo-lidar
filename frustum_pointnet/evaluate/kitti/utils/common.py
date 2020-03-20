@@ -58,7 +58,7 @@ def eval_from_files(prediction_folder, ground_truth_folder, image_ids=None, verb
         image_ids = [int(line) for line in lines]
     ground_truth_annotations = get_label_annotations(ground_truth_folder, image_ids=image_ids)
     metrics, results, results_str = get_official_eval_result(
-        gt_annos=ground_truth_annotations, dt_annos=prediction_annotations, current_classes=[0, 1, 2]
+        gt_annos=ground_truth_annotations, dt_annos=prediction_annotations, current_classes=[0,]
     )
     if verbose:
         print(results_str)
